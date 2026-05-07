@@ -89,12 +89,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "darkprompt.wsgi.application"
 
+# Database — SQLite locally, whatever DATABASE_URL says in production.
+# Render injects DATABASE_URL pointing at its managed Postgres instance.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+_database_url = os.environ.get("DATABASE_URL", "").strip()
+if _database_url:
+    try:
+        import dj_database_url  # noqa: WPS433 — optional in dev, required in prod
+        DATABASES["default"] = dj_database_url.parse(
+            _database_url,
+            conn_max_age=600,
+            ssl_require=not DEBUG,
+        )
+    except ImportError:
+        # Local dev without the production extras installed — fall through
+        # to the SQLite default; printing a warning would spam tests.
+        pass
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

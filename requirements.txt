@@ -10,6 +10,10 @@ gunicorn==23.0.0
 # Static-files middleware so we don't need nginx in front of Django
 whitenoise==6.8.2
 
+# Production database
+psycopg2-binary==2.9.10
+dj-database-url==2.3.0
+
 # Local LLM proxy (gradio.live tunnels)
 gradio_client==2.5.0
 

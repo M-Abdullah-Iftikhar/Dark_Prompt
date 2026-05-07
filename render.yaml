@@ -1,12 +1,24 @@
 # Render service definition (https://render.com/docs/blueprint-spec)
 # Commit this file and use Render's "Blueprint" deploy to create the service.
+#
+# Free-tier constraints:
+#   - No persistent disk (so SQLite would reset on every deploy)
+#   - Web service sleeps after 15 min idle, ~30s cold start
+# Both are fine for an FYP demo; the Postgres service below survives deploys
+# regardless and is what Django will use via DATABASE_URL.
+
+databases:
+  - name: dark-prompt-db
+    plan: free                        # 1 GB, free for 90 days then $7/mo
+    databaseName: dark_prompt
+    user: dark_prompt
 
 services:
   - type: web
     name: dark-prompt
     runtime: python
-    region: oregon                   # change to "frankfurt" / "singapore" for lower latency
-    plan: free                        # bump to "starter" ($7/mo) to skip cold starts
+    region: oregon                    # change to "frankfurt" / "singapore" for lower latency
+    plan: free                        # bump to "starter" ($7/mo) to skip cold starts + add disk
     branch: main                      # auto-deploy on push to this branch
     autoDeploy: true                  # enabled — GitHub Actions can also trigger via deploy hook
 
@@ -14,14 +26,13 @@ services:
     startCommand: "gunicorn darkprompt.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 300"
     healthCheckPath: /
 
-    # Persistent disk so SQLite + runtime/builds/ survive deploys.
-    # Comment this block out and use a Postgres add-on for serious workloads.
-    disk:
-      name: data
-      mountPath: /opt/render/project/src
-      sizeGB: 1
-
     envVars:
+      # ----- Database (auto-wired from the Postgres service above) -----
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dark-prompt-db
+          property: connectionString
+
       # ----- Django -----
       - key: DJANGO_DEBUG
         value: "0"
