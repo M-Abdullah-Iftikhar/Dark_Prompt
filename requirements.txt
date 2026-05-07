@@ -22,6 +22,3 @@ python-dotenv==1.0.0
 
 # HTTP client used by the Groq title-naming helper
 requests==2.32.5
-
-# Image resizing for favicon generation (one-shot; safe to omit at runtime)
-Pillow==10.1.0
