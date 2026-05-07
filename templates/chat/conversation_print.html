@@ -1,0 +1,405 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ conversation.title }} · Dark Prompt · Export</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500;600&display=swap">
+  <style>
+    /* ============================================================
+       Print-optimised export — black canvas matching the live UI,
+       blood-red accents, bone-coloured ink.
+       Note: most browsers require "Background graphics" enabled in
+       the print dialog to actually render the dark background. The
+       `print-color-adjust: exact` rules below request it.
+       ============================================================ */
+    :root{
+      --pink:       #780606;
+      --pink-deep:  #4A0202;
+      --pink-soft:  #FEC5D3;
+      --bg:         #000000;
+      --bg-elev:    #050306;
+      --bg-bubble:  #0A050C;
+      --ink:        #F7F3EE;
+      --ink-soft:   #B6A9B8;
+      --ink-mute:   #8A859C;
+      --rule:       rgba(120, 6, 6, 0.40);
+      --rule-strong:rgba(120, 6, 6, 0.70);
+    }
+    *,*::before,*::after{ box-sizing: border-box; }
+    html,body{ margin: 0; padding: 0; }
+    html{ background: var(--bg); }
+    body{
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 12pt;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .sheet{
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 36px 44px 60px;
+    }
+
+    /* ---------- Page chrome ---------- */
+    .doc-header{
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 18px;
+      border-bottom: 2px solid var(--pink);
+      margin-bottom: 24px;
+    }
+    .doc-logo{
+      width: 48px; height: 48px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(120, 6, 6, 0.55));
+    }
+    .doc-brand{
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 22pt;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .doc-brand-sep{ color: var(--pink-soft); margin: 0 2px; }
+    .doc-spacer{ flex: 1; }
+    .doc-meta{
+      text-align: right;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--pink-soft);
+    }
+    .doc-meta span{ display: block; color: var(--ink-mute); }
+    .doc-meta strong{ color: var(--pink-soft); font-weight: 600; }
+
+    .doc-title-block{
+      margin-bottom: 28px;
+      padding: 14px 0 6px;
+    }
+    .doc-tag{
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--pink-soft);
+    }
+    .doc-title{
+      margin: 6px 0 0;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 20pt;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+    }
+    .doc-fineprint{
+      margin-top: 10px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.06em;
+      color: var(--ink-mute);
+    }
+
+    /* ---------- Messages ---------- */
+    .thread{
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+    .msg{
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+      page-break-inside: avoid;
+    }
+    .msg-user      { align-self: flex-end;   align-items: flex-end; }
+    .msg-assistant { align-self: flex-start; align-items: flex-start; }
+
+    .msg-meta{
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 8.5pt;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .msg-who{
+      font-weight: 600;
+      color: var(--pink-soft);
+    }
+    .msg-time{ color: var(--ink-mute); }
+
+    .msg-bubble{
+      padding: 12px 16px;
+      border: 1px solid var(--rule);
+      background: var(--bg-bubble);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      /* Chamfered chevron corners — same trick as the live UI. */
+      clip-path: polygon(
+        10px 0, 100% 0,
+        100% calc(100% - 10px), calc(100% - 10px) 100%,
+        0 100%, 0 10px
+      );
+    }
+    .msg-user .msg-bubble{
+      border-color: var(--rule-strong);
+      background: linear-gradient(180deg, rgba(120, 6, 6, 0.18) 0%, rgba(120, 6, 6, 0.06) 100%);
+    }
+    .msg-assistant .msg-bubble{
+      border-color: var(--rule);
+      background: var(--bg-bubble);
+    }
+
+    .msg-body{
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: var(--ink);
+    }
+    /* Code-fenced blocks (very simple parser handled below) */
+    .msg-body pre,
+    .msg-body code{
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10pt;
+    }
+    .msg-body pre{
+      margin: 8px 0;
+      padding: 10px 12px;
+      background: #000;
+      border-left: 2px solid var(--pink);
+      color: var(--pink-soft);
+      white-space: pre-wrap;
+      word-break: break-word;
+      page-break-inside: avoid;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .msg-body code{
+      background: rgba(120, 6, 6, 0.18);
+      color: var(--pink-soft);
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+
+    /* ---------- Footer ---------- */
+    .doc-footer{
+      margin-top: 36px;
+      padding-top: 14px;
+      border-top: 1px solid var(--rule);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 8.5pt;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .doc-footer .doc-footer-brand{ color: var(--pink-soft); font-weight: 600; }
+
+    /* ---------- Screen-only print bar ---------- */
+    .print-bar{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: linear-gradient(180deg, rgba(10, 5, 12, 0.98), rgba(5, 3, 6, 0.98));
+      border-bottom: 1px solid var(--rule-strong);
+      color: var(--ink);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11pt;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    }
+    .print-bar-tag{
+      color: var(--pink-soft);
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      font-size: 10pt;
+    }
+    .print-bar-hint{
+      color: var(--ink-mute);
+      font-size: 9.5pt;
+      letter-spacing: 0.04em;
+    }
+    .print-bar-hint strong{ color: var(--pink-soft); }
+    .print-bar-spacer{ flex: 1; }
+    .print-bar-btn{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: linear-gradient(135deg, #780606 0%, #4A0202 100%);
+      color: var(--ink);
+      border: 1px solid rgba(254, 197, 211, 0.45);
+      cursor: pointer;
+      font: 10pt 'Share Tech Mono', monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .print-bar-btn:hover{
+      background: linear-gradient(135deg, #8C0808 0%, #5A0303 100%);
+    }
+    .print-bar-btn-ghost{
+      background: transparent;
+      border-color: rgba(254, 197, 211, 0.30);
+    }
+
+    /* ---------- Print rules ---------- */
+    @page{
+      size: A4;
+      margin: 14mm 12mm 16mm;
+      background: #000;  /* hint for engines that honour @page background */
+      @bottom-right{
+        content: counter(page) " / " counter(pages);
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 9pt;
+        color: #FEC5D3;
+      }
+    }
+    @media print{
+      .print-bar{ display: none !important; }
+      .sheet{ padding: 8mm 6mm; max-width: none; }
+      html, body{
+        background: #000 !important;
+        color: var(--ink) !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      *{
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .doc-footer{ position: running(footer); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-bar" id="print-bar">
+  <span class="print-bar-tag">// EXPORT_PREVIEW</span>
+  <span class="print-bar-hint">
+    Tip: enable <strong>"Background graphics"</strong> in the print dialog to keep the dark canvas.
+  </span>
+  <span class="print-bar-spacer"></span>
+  <button type="button" class="print-bar-btn" onclick="window.print()">
+    Print / Save as PDF
+  </button>
+  <a class="print-bar-btn print-bar-btn-ghost" href="{% url 'chat:chat' %}?c={{ conversation.id }}">Back</a>
+</div>
+
+<div class="sheet">
+
+  <header class="doc-header">
+    <img class="doc-logo" src="{% static 'img/logo.png' %}" alt="Dark Prompt logo">
+    <div class="doc-brand">DARK<span class="doc-brand-sep">//</span>PROMPT</div>
+    <div class="doc-spacer"></div>
+    <div class="doc-meta">
+      <strong>// SESSION_EXPORT</strong>
+      <span>{{ now|date:"Y-m-d H:i" }} UTC</span>
+      <span>OPERATOR // {{ request.user.username }}</span>
+    </div>
+  </header>
+
+  <section class="doc-title-block">
+    <div class="doc-tag">// CONVERSATION</div>
+    <h1 class="doc-title">{{ conversation.title }}</h1>
+    <div class="doc-fineprint">
+      Created {{ conversation.created_at|date:"Y-m-d H:i" }} ·
+      Last activity {{ conversation.updated_at|date:"Y-m-d H:i" }} ·
+      {{ messages|length }} message{{ messages|length|pluralize }}
+    </div>
+  </section>
+
+  <section class="thread">
+    {% for m in messages %}
+      <article class="msg msg-{{ m.role }}">
+        <div class="msg-meta">
+          <span class="msg-who">{% if m.role == 'user' %}YOU{% else %}DARK PROMPT{% endif %}</span>
+          <span class="msg-time">{{ m.created_at|date:"Y-m-d H:i" }}</span>
+        </div>
+        <div class="msg-bubble">
+          <div class="msg-body" data-raw>{{ m.content }}</div>
+        </div>
+      </article>
+    {% empty %}
+      <p class="muted">// No messages in this conversation.</p>
+    {% endfor %}
+  </section>
+
+  <footer class="doc-footer">
+    <span class="doc-footer-brand">DARK//PROMPT</span>
+    <span>Defensive research export · not for production deployment of malicious payloads.</span>
+  </footer>
+
+</div>
+
+<script>
+  /* Convert ```fenced``` blocks in each .msg-body into <pre><code> for nice
+     print rendering. Keeps the server-side template trivially simple — all
+     formatting decisions are made here, in the browser. */
+  (function () {
+    const FENCE = /```([a-zA-Z0-9_+\-]*)\n?([\s\S]*?)```/g;
+    function escape(s) {
+      return s.replace(/[&<>"']/g, (c) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+    document.querySelectorAll('.msg-body').forEach((node) => {
+      const raw = node.textContent;
+      let html = '';
+      let last = 0;
+      let m;
+      FENCE.lastIndex = 0;
+      while ((m = FENCE.exec(raw)) !== null) {
+        const before = raw.slice(last, m.index);
+        if (before) html += escape(before);
+        const lang = (m[1] || '').toLowerCase();
+        const code = m[2] || '';
+        html += `<pre><code class="language-${escape(lang)}">${escape(code)}</code></pre>`;
+        last = m.index + m[0].length;
+      }
+      if (last < raw.length) html += escape(raw.slice(last));
+      // Inline single-backtick code, only on the segments outside fences
+      // (we already escaped them above, so do this on the resulting HTML
+      // by replacing escaped backticks).
+      html = html.replace(/`([^`]+)`/g, (_, inner) => `<code>${inner}</code>`);
+      node.innerHTML = html;
+    });
+
+    /* Auto-open the print dialog if ?print=1 is present. Useful for a
+       direct-to-print export button — but defaults to manual so the user
+       can review the page first. */
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('print') === '1') {
+      // Wait for fonts so the layout settles before the print dialog opens.
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => setTimeout(() => window.print(), 80));
+      } else {
+        window.addEventListener('load', () => setTimeout(() => window.print(), 200));
+      }
+    }
+  })();
+</script>
+
+</body>
+</html>

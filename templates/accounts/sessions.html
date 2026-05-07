@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Sessions · Dark Prompt{% endblock %}
+{% block page_class %}settings{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<section class="settings-shell">
+  <div class="settings-card activity-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>Active sessions</h1>
+      <p class="auth-sub">// Devices currently signed in to this account</p>
+    </header>
+
+    {% if messages %}
+      <ul class="form-flash">
+        {% for m in messages %}
+          <li class="form-flash-{{ m.tags|default:'success' }}">{{ m }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if sessions %}
+      <ol class="session-list">
+        {% for s in sessions %}
+          <li class="session-row {% if s.is_current %}is-current{% endif %}">
+            <div class="session-head">
+              <span class="session-label">{{ s.label }}</span>
+              {% if s.is_current %}<span class="session-current-tag mono">CURRENT</span>{% endif %}
+            </div>
+            <dl class="session-meta">
+              {% if s.ip %}<div><dt>IP</dt><dd class="mono">{{ s.ip }}</dd></div>{% endif %}
+              {% if s.created_at %}<div><dt>SIGNED IN</dt><dd class="mono">{{ s.created_at|slice:":16" }}</dd></div>{% endif %}
+              <div><dt>EXPIRES</dt><dd class="mono">{{ s.expire_date|date:"Y-m-d H:i" }}</dd></div>
+              {% if s.ua_full %}<div class="session-ua-row"><dt>UA</dt><dd class="mono session-ua" title="{{ s.ua_full }}">{{ s.ua_full|truncatechars:80 }}</dd></div>{% endif %}
+            </dl>
+            {% if not s.is_current %}
+              <form method="post" action="{% url 'accounts:session_revoke' s.key %}" class="session-revoke">
+                {% csrf_token %}
+                <button type="submit" class="auth-btn auth-btn-ghost auth-btn-sm">
+                  <span class="auth-btn-text">Revoke</span>
+                  <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>
+                  </svg>
+                </button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted activity-empty">// No active sessions found.</p>
+    {% endif %}
+
+    <div class="settings-actions">
+      <a href="{% url 'accounts:settings' %}" class="auth-btn auth-btn-ghost auth-btn-back">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12 H5"/><path d="M12 5 L5 12 L12 19"/>
+        </svg>
+        <span class="auth-btn-text">Back to settings</span>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

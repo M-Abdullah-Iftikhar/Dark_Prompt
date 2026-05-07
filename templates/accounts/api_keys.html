@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}API keys · Dark Prompt{% endblock %}
+{% block page_class %}settings{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<section class="settings-shell">
+  <div class="settings-card activity-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>API keys</h1>
+      <p class="auth-sub">// Personal tokens for /api/chat/</p>
+    </header>
+
+    {% if messages %}
+      <ul class="form-flash">
+        {% for m in messages %}
+          <li class="form-flash-{{ m.tags|default:'success' }}">{{ m }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if new_token %}
+      <div class="apikey-newly-created">
+        <div class="apikey-warn mono">// COPY THIS NOW — IT WILL NOT BE SHOWN AGAIN</div>
+        <div class="apikey-token-box">
+          <code class="apikey-token" id="apikey-new-token">{{ new_token }}</code>
+          <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" id="apikey-copy-btn">
+            <span class="auth-btn-text">Copy</span>
+            <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2"/>
+              <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    {% endif %}
+
+    <h2 class="settings-section">Mint a new key</h2>
+    <form method="post" novalidate class="auth-form settings-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create">
+      <label class="field">
+        <span class="field-label">Label</span>
+        <div class="field-input">
+          <input type="text" name="name" maxlength="80" placeholder="e.g. Recon laptop" autocomplete="off">
+        </div>
+        <small class="field-hint">A name to remember where this key lives. Tokens are hashed at rest; we never see them again after creation.</small>
+      </label>
+      <button type="submit" class="auth-btn auth-btn-primary">
+        <span class="auth-btn-text">Generate key</span>
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 5 L18 12 L9 19 Z"/>
+        </svg>
+      </button>
+    </form>
+
+    <h2 class="settings-section">Your keys</h2>
+    {% if keys %}
+      <ol class="apikey-list">
+        {% for k in keys %}
+          <li class="apikey-row {% if not k.is_active %}is-revoked{% endif %}">
+            <div class="apikey-row-head">
+              <span class="apikey-name">{{ k.name }}</span>
+              {% if not k.is_active %}<span class="apikey-revoked-tag mono">REVOKED</span>{% endif %}
+            </div>
+            <dl class="apikey-meta">
+              <div><dt>PREFIX</dt><dd class="mono">{{ k.prefix }}…</dd></div>
+              <div><dt>CREATED</dt><dd class="mono">{{ k.created_at|date:"Y-m-d H:i" }}</dd></div>
+              <div><dt>LAST USED</dt><dd class="mono">{% if k.last_used %}{{ k.last_used|date:"Y-m-d H:i" }}{% else %}—{% endif %}</dd></div>
+              {% if k.revoked_at %}<div><dt>REVOKED</dt><dd class="mono">{{ k.revoked_at|date:"Y-m-d H:i" }}</dd></div>{% endif %}
+            </dl>
+            {% if k.is_active %}
+              <form method="post" class="apikey-revoke">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="revoke">
+                <input type="hidden" name="key_id" value="{{ k.id }}">
+                <button type="submit" class="auth-btn auth-btn-ghost auth-btn-sm">
+                  <span class="auth-btn-text">Revoke</span>
+                  <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>
+                  </svg>
+                </button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted activity-empty">// No keys minted yet.</p>
+    {% endif %}
+
+    <div class="apikey-howto mono">
+      <p class="apikey-howto-head">// How to use</p>
+<pre data-no-copy>curl -X POST {{ request.scheme }}://{{ request.get_host }}{% url 'chat:api_chat' %} \
+  -H "Authorization: Bearer YOUR_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"instruction":"hello","temperature":0.7,"max_tokens":256}'</pre>
+    </div>
+
+    <div class="settings-actions">
+      <a href="{% url 'accounts:settings' %}" class="auth-btn auth-btn-ghost auth-btn-back">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12 H5"/><path d="M12 5 L5 12 L12 19"/>
+        </svg>
+        <span class="auth-btn-text">Back to settings</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+{% if new_token %}
+<script>
+(function(){
+  const btn = document.getElementById('apikey-copy-btn');
+  const tok = document.getElementById('apikey-new-token');
+  if (!btn || !tok) return;
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(tok.textContent.trim());
+      btn.querySelector('.auth-btn-text').textContent = 'Copied';
+      setTimeout(() => { btn.querySelector('.auth-btn-text').textContent = 'Copy'; }, 1500);
+    } catch (_e) {
+      btn.querySelector('.auth-btn-text').textContent = 'Failed';
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

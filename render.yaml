@@ -1,0 +1,59 @@
+# Render service definition (https://render.com/docs/blueprint-spec)
+# Commit this file and use Render's "Blueprint" deploy to create the service.
+
+services:
+  - type: web
+    name: dark-prompt
+    runtime: python
+    region: oregon                   # change to "frankfurt" / "singapore" for lower latency
+    plan: free                        # bump to "starter" ($7/mo) to skip cold starts
+    branch: main                      # auto-deploy on push to this branch
+    autoDeploy: true                  # enabled — GitHub Actions can also trigger via deploy hook
+
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn darkprompt.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 300"
+    healthCheckPath: /
+
+    # Persistent disk so SQLite + runtime/builds/ survive deploys.
+    # Comment this block out and use a Postgres add-on for serious workloads.
+    disk:
+      name: data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
+
+    envVars:
+      # ----- Django -----
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true               # Render auto-generates a random 50+ char value
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false                       # set manually after the host is provisioned
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false                       # e.g. https://dark-prompt.onrender.com
+      - key: DJANGO_BEHIND_TLS_PROXY
+        value: "1"                        # Render terminates TLS for us
+      - key: DJANGO_SECURE_HSTS_SECONDS
+        value: "0"                        # bump to 2592000 (30d) once HTTPS is verified
+
+      # ----- LLM backends (gradio.live tunnels — update when they rotate) -----
+      - key: LLM_API_URL
+        sync: false
+      - key: LLM_API_NAME
+        value: "/generate"
+      - key: LLM_API_URL_C
+        sync: false
+      - key: LLM_API_NAME_C
+        value: "/generate"
+
+      # ----- Groq (chat-title inference) -----
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: "llama-3.1-8b-instant"
+
+      # ----- Email (console backend OK for FYP demo; swap to SMTP for real users) -----
+      - key: DJANGO_EMAIL_BACKEND
+        value: "django.core.mail.backends.console.EmailBackend"
+      - key: DJANGO_DEFAULT_FROM_EMAIL
+        value: "Dark Prompt <no-reply@darkprompt.local>"

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Enable 2FA · Dark Prompt{% endblock %}
+{% block page_class %}settings{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<section class="settings-shell">
+  <div class="settings-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>{% if confirmed %}2FA enabled{% else %}Enable 2FA{% endif %}</h1>
+      <p class="auth-sub">
+        {% if confirmed %}// Save your backup codes now
+        {% else %}// Pair your authenticator app{% endif %}
+      </p>
+    </header>
+
+    {% if confirmed %}
+      <div class="auth-success">
+        <div class="auth-success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M5 12 L10 17 L20 7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p>Two-factor authentication is now active on your account.</p>
+        <p class="muted">From the next sign-in onward you'll be asked for a 6-digit code from your authenticator app.</p>
+      </div>
+
+      <h2 class="settings-section">Backup codes</h2>
+      <p class="muted" style="margin-bottom: 12px;">
+        Store these somewhere safe — a password manager or printed copy. Each code works exactly once
+        and lets you sign in if you lose access to your authenticator. <strong>This is the only time they will be shown.</strong>
+      </p>
+      <ol class="backup-code-grid">
+        {% for c in backup_codes %}<li class="mono">{{ c }}</li>{% endfor %}
+      </ol>
+      <button type="button" class="auth-btn auth-btn-ghost" id="copy-backup-btn">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="11" height="11" rx="2"/>
+          <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+        </svg>
+        <span class="auth-btn-text">Copy all codes</span>
+      </button>
+
+      <div class="settings-actions">
+        <a href="{% url 'accounts:settings' %}" class="auth-btn auth-btn-primary">
+          <span class="auth-btn-text">Done</span>
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M9 5 L18 12 L9 19 Z"/>
+          </svg>
+        </a>
+      </div>
+    {% else %}
+      <div class="totp-setup">
+        <div class="totp-setup-step">
+          <span class="totp-step-num">1</span>
+          <div>
+            <h3 class="totp-step-head">Scan with an authenticator</h3>
+            <p class="muted">Use Google Authenticator, 1Password, Authy, Bitwarden, or any TOTP app.</p>
+            <div class="totp-qr-wrap">
+              <div id="totp-qr" data-uri="{{ uri|escape }}"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="totp-setup-step">
+          <span class="totp-step-num">2</span>
+          <div>
+            <h3 class="totp-step-head">Or enter the secret manually</h3>
+            <p class="muted">If you can't scan the QR code, type this into your app:</p>
+            <code class="totp-secret">{{ secret }}</code>
+          </div>
+        </div>
+
+        <div class="totp-setup-step">
+          <span class="totp-step-num">3</span>
+          <div style="flex: 1; min-width: 0;">
+            <h3 class="totp-step-head">Confirm with the 6-digit code</h3>
+            <form method="post" novalidate class="auth-form" style="margin-top: 10px;">
+              {% csrf_token %}
+              {% if form.non_field_errors %}
+                <div class="form-error">{{ form.non_field_errors|join:" · " }}</div>
+              {% endif %}
+              <label class="field">
+                <span class="field-label">Verification code</span>
+                <div class="field-input">{{ form.code }}</div>
+                {% if form.code.errors %}
+                  <small class="field-error">{{ form.code.errors|join:" · " }}</small>
+                {% endif %}
+              </label>
+              <button type="submit" class="auth-btn auth-btn-primary">
+                <span class="auth-btn-text">Activate 2FA</span>
+                <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M9 5 L18 12 L9 19 Z"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <a href="{% url 'accounts:settings' %}" class="auth-btn auth-btn-ghost auth-btn-back">
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12 H5"/><path d="M12 5 L5 12 L12 19"/>
+          </svg>
+          <span class="auth-btn-text">Cancel</span>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if not confirmed %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+(function () {
+  const wrap = document.getElementById('totp-qr');
+  if (!wrap || typeof qrcode !== 'function') return;
+  const uri = wrap.dataset.uri;
+  const qr = qrcode(0, 'M');
+  qr.addData(uri);
+  qr.make();
+  wrap.innerHTML = qr.createSvgTag({ scalable: true, margin: 0 });
+  const svg = wrap.querySelector('svg');
+  if (svg) {
+    svg.setAttribute('width', '180');
+    svg.setAttribute('height', '180');
+    svg.style.background = '#fff';
+    svg.style.padding = '8px';
+  }
+})();
+</script>
+{% else %}
+<script>
+(function () {
+  const btn = document.getElementById('copy-backup-btn');
+  if (!btn) return;
+  const codes = Array.from(document.querySelectorAll('.backup-code-grid li'))
+    .map(li => li.textContent.trim()).join('\n');
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(codes);
+      btn.querySelector('.auth-btn-text').textContent = 'Copied';
+      setTimeout(() => { btn.querySelector('.auth-btn-text').textContent = 'Copy all codes'; }, 1500);
+    } catch (_e) {
+      btn.querySelector('.auth-btn-text').textContent = 'Failed';
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

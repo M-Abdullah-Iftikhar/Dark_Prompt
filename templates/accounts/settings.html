@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Settings · Dark Prompt{% endblock %}
+{% block page_class %}settings{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const cb = document.getElementById('audio-cues-toggle');
+  if (!cb || !window.dpAudio) {
+    // Fallback if dpAudio hasn't loaded yet — re-bind on DOMContentLoaded.
+    document.addEventListener('DOMContentLoaded', bind);
+    return;
+  }
+  bind();
+  function bind() {
+    const cb = document.getElementById('audio-cues-toggle');
+    if (!cb || !window.dpAudio) return;
+    cb.checked = window.dpAudio.isEnabled();
+    syncLabel(cb);
+    cb.addEventListener('change', () => {
+      window.dpAudio.setEnabled(cb.checked);
+      syncLabel(cb);
+      if (cb.checked) window.dpAudio.dispatch();
+    });
+  }
+  function syncLabel(cb) {
+    const stateEl = cb.closest('label')?.querySelector('[data-state-on]');
+    if (!stateEl) return;
+    stateEl.textContent = cb.checked
+      ? stateEl.dataset.stateOn
+      : stateEl.dataset.stateOff;
+  }
+})();
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="settings-shell">
+  <div class="settings-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>Settings</h1>
+      <p class="auth-sub">// Operator profile</p>
+    </header>
+
+    {% if messages %}
+      <ul class="form-flash">
+        {% for m in messages %}
+          <li class="form-flash-{{ m.tags|default:'success' }}">{{ m }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="settings-meta">
+      <div class="settings-meta-row">
+        <span class="settings-key">JOINED</span>
+        <span class="settings-val">{{ user.date_joined|date:"Y-m-d" }}</span>
+      </div>
+      <div class="settings-meta-row">
+        <span class="settings-key">LAST_SEEN</span>
+        <span class="settings-val">{{ user.last_login|date:"Y-m-d H:i" }} UTC</span>
+      </div>
+      <div class="settings-meta-row">
+        <span class="settings-key">EMAIL</span>
+        <span class="settings-val">
+          {% if user.profile.email_verified %}
+            <span class="settings-chip settings-chip-ok">VERIFIED</span>
+          {% else %}
+            <span class="settings-chip settings-chip-warn">UNVERIFIED</span>
+            <a href="{% url 'accounts:verify_pending' %}" class="settings-inline-link">resend</a>
+          {% endif %}
+        </span>
+      </div>
+      <div class="settings-meta-row">
+        <span class="settings-key">2FA</span>
+        <span class="settings-val">
+          {% if user.profile.totp_enabled %}
+            <span class="settings-chip settings-chip-ok">ENABLED</span>
+            <a href="{% url 'accounts:totp_manage' %}" class="settings-inline-link">manage</a>
+          {% else %}
+            <span class="settings-chip">OFF</span>
+            <a href="{% url 'accounts:totp_setup' %}" class="settings-inline-link">enable</a>
+          {% endif %}
+        </span>
+      </div>
+      {% if active_tier %}
+        <div class="settings-meta-row">
+          <span class="settings-key">TIER</span>
+          <span class="settings-val"><span class="settings-chip">{{ active_tier|upper }}</span></span>
+        </div>
+      {% endif %}
+    </div>
+
+    <h2 class="settings-section">Console preferences</h2>
+    <div class="settings-pref-row">
+      <div>
+        <div class="settings-pref-label">Audio cues</div>
+        <div class="settings-pref-help muted">
+          Short synth blips on dispatch, response, and fault. Off by default.
+          State is stored in this browser only.
+        </div>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="audio-cues-toggle" data-pref="audio">
+        <span class="settings-toggle-slider" aria-hidden="true"></span>
+        <span class="settings-toggle-state mono" data-state-on="ON" data-state-off="OFF">OFF</span>
+      </label>
+    </div>
+
+    <!-- ===== Profile (username + email) ===== -->
+    <form method="post" novalidate class="auth-form settings-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="profile">
+      <h2 class="settings-section">Profile</h2>
+      {% if profile_form.non_field_errors %}
+        <div class="form-error">{{ profile_form.non_field_errors|join:" · " }}</div>
+      {% endif %}
+      <label class="field">
+        <span class="field-label">Username</span>
+        <div class="field-input">
+          {{ profile_form.username }}
+          <span class="field-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
+            </svg>
+          </span>
+        </div>
+        {% if profile_form.username.errors %}
+          <small class="field-error">{{ profile_form.username.errors|join:" · " }}</small>
+        {% endif %}
+      </label>
+      <label class="field">
+        <span class="field-label">Email</span>
+        <div class="field-input">
+          {{ profile_form.email }}
+          <span class="field-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2"/>
+              <path d="M3 7l9 6 9-6"/>
+            </svg>
+          </span>
+        </div>
+        {% if profile_form.email.errors %}
+          <small class="field-error">{{ profile_form.email.errors|join:" · " }}</small>
+        {% endif %}
+      </label>
+      <button type="submit" class="auth-btn auth-btn-primary">
+        <span class="auth-btn-text">Save profile</span>
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12 L10 17 L20 7"/>
+        </svg>
+      </button>
+    </form>
+
+    <!-- ===== Password ===== -->
+    <form method="post" novalidate class="auth-form settings-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="password">
+      <h2 class="settings-section">Change password</h2>
+      {% if password_form.non_field_errors %}
+        <div class="form-error">{{ password_form.non_field_errors|join:" · " }}</div>
+      {% endif %}
+      <label class="field">
+        <span class="field-label">Current password</span>
+        <div class="field-input" data-pw-wrap>
+          {{ password_form.current_password }}
+          <button type="button" class="pw-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
+            <svg class="pw-icon-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="pw-icon-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 3l18 18"/><path d="M10.6 6.1A10 10 0 0 1 12 6c6.5 0 10 6 10 6a18.3 18.3 0 0 1-3.4 4"/><path d="M6.6 6.6A18.5 18.5 0 0 0 2 12s3.5 6 10 6a9.7 9.7 0 0 0 4.3-1"/><path d="M9.5 9.5a3 3 0 0 0 4.2 4.2"/>
+            </svg>
+          </button>
+        </div>
+        {% if password_form.current_password.errors %}
+          <small class="field-error">{{ password_form.current_password.errors|join:" · " }}</small>
+        {% endif %}
+      </label>
+      <label class="field">
+        <span class="field-label">New password</span>
+        <div class="field-input" data-pw-wrap>
+          {{ password_form.new_password }}
+          <button type="button" class="pw-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
+            <svg class="pw-icon-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="pw-icon-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 3l18 18"/><path d="M10.6 6.1A10 10 0 0 1 12 6c6.5 0 10 6 10 6a18.3 18.3 0 0 1-3.4 4"/><path d="M6.6 6.6A18.5 18.5 0 0 0 2 12s3.5 6 10 6a9.7 9.7 0 0 0 4.3-1"/><path d="M9.5 9.5a3 3 0 0 0 4.2 4.2"/>
+            </svg>
+          </button>
+        </div>
+        <small class="field-hint">Minimum 8 characters. Mix cases, digits, and symbols for a stronger score.</small>
+        {% if password_form.new_password.errors %}
+          <small class="field-error">{{ password_form.new_password.errors|join:" · " }}</small>
+        {% endif %}
+      </label>
+      <label class="field">
+        <span class="field-label">Confirm new password</span>
+        <div class="field-input" data-pw-wrap>
+          {{ password_form.confirm_password }}
+        </div>
+        {% if password_form.confirm_password.errors %}
+          <small class="field-error">{{ password_form.confirm_password.errors|join:" · " }}</small>
+        {% endif %}
+      </label>
+      <button type="submit" class="auth-btn auth-btn-primary">
+        <span class="auth-btn-text">Change password</span>
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="5" y="11" width="14" height="9" rx="1"/>
+          <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="settings-actions">
+      <a href="{% url 'accounts:sessions' %}" class="auth-btn auth-btn-ghost">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="12" rx="2"/>
+          <path d="M8 20h8M12 16v4"/>
+        </svg>
+        <span class="auth-btn-text">Active sessions</span>
+      </a>
+      <a href="{% url 'accounts:activity' %}" class="auth-btn auth-btn-ghost">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12h4l3-8 4 16 3-8h4"/>
+        </svg>
+        <span class="auth-btn-text">Activity log</span>
+      </a>
+      <a href="{% url 'chat:chat' %}" class="auth-btn auth-btn-ghost auth-btn-back">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12 H5"/><path d="M12 5 L5 12 L12 19"/>
+        </svg>
+        <span class="auth-btn-text">Back to console</span>
+      </a>
+      <a href="{% url 'accounts:api_keys' %}" class="auth-btn auth-btn-ghost">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="8" cy="15" r="4"/>
+          <path d="M10.5 12.5 21 2l-2 2 2 2-2 2-2-2-3 3"/>
+        </svg>
+        <span class="auth-btn-text">API keys</span>
+      </a>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="auth-btn auth-btn-ghost auth-btn-back">
+          <span class="auth-btn-text">Sign out</span>
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/>
+            <polyline points="8 17 3 12 8 7"/>
+            <line x1="3" y1="12" x2="15" y2="12"/>
+          </svg>
+        </button>
+      </form>
+      <a href="{% url 'chat:chat' %}?replay_tour=1" class="auth-btn auth-btn-ghost" id="replay-tour-link">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 7v5l3 3"/>
+        </svg>
+        <span class="auth-btn-text">Replay tour</span>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

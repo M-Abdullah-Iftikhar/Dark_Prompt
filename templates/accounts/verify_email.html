@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Email verification · Dark Prompt{% endblock %}
+{% block page_class %}auth{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<section class="auth-shell auth-shell-signin">
+  <div class="auth-bg" aria-hidden="true"></div>
+  <div class="auth-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>{% if valid %}Email verified{% else %}Link invalid{% endif %}</h1>
+      <p class="auth-sub">
+        {% if valid %}// Console unlocked
+        {% else %}// Token expired or tampered{% endif %}
+      </p>
+    </header>
+
+    <div class="auth-success">
+      {% if valid %}
+        <div class="auth-success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M5 12 L10 17 L20 7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p>Your email address has been confirmed.</p>
+        <p class="muted">You can now sign in and use the chat console.</p>
+        <a href="{% url 'chat:chat' %}" class="auth-btn auth-btn-primary">
+          <span class="auth-btn-text">Open console</span>
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M9 5 L18 12 L9 19 Z"/>
+          </svg>
+        </a>
+      {% else %}
+        <p>This link is invalid or has expired.</p>
+        <p class="muted">Sign in and request a fresh verification email.</p>
+        <a href="{% url 'accounts:login' %}" class="auth-btn auth-btn-ghost">
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12 H5"/><path d="M12 5 L5 12 L12 19"/>
+          </svg>
+          <span class="auth-btn-text">Sign in</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

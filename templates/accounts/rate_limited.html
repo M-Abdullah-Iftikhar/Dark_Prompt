@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Slow down · Dark Prompt{% endblock %}
+{% block page_class %}error{% endblock %}
+
+{% block content %}
+<section class="error-shell">
+  <div class="error-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <span class="error-tag">// THROTTLE_ENGAGED</span>
+    <h1 class="error-code">429</h1>
+    <p class="error-headline">Too many attempts.</p>
+    <p class="error-meta">
+      You've hit the rate limit for this endpoint. Hold for a moment before trying again.
+      {% if retry_after %}<br><code>Retry after ~{{ retry_after }}s</code>{% endif %}
+    </p>
+
+    <div class="error-actions">
+      <a href="{% url 'core:landing' %}" class="auth-btn auth-btn-ghost auth-btn-back">
+        <span class="auth-btn-text">Return home</span>
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12 H5"/><path d="M12 5 L5 12 L12 19"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

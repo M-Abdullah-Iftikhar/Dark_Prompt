@@ -1,0 +1,690 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_class %}landing{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-sweep" aria-hidden="true"></div>
+
+  <svg class="hero-sigil" viewBox="-300 -300 600 600" aria-hidden="true">
+    <defs>
+      <linearGradient id="sigil-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stop-color="#FF3CAC"/>
+        <stop offset="40%"  stop-color="#784BA0"/>
+        <stop offset="80%"  stop-color="#2B86C5"/>
+        <stop offset="100%" stop-color="#C77DFF"/>
+      </linearGradient>
+      <radialGradient id="sigil-core">
+        <stop offset="0%"   stop-color="#fff" stop-opacity="0.95"/>
+        <stop offset="60%"  stop-color="#C77DFF" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#C77DFF" stop-opacity="0"/>
+      </radialGradient>
+      <mask id="sigil-fade">
+        <rect x="-300" y="-300" width="600" height="600" fill="url(#sigil-grad)"/>
+      </mask>
+    </defs>
+
+    <g class="sigil-ring sigil-ring-outer">
+      <circle r="278" fill="none" stroke="url(#sigil-grad)" stroke-width="1" stroke-dasharray="2 7" opacity="0.65"/>
+    </g>
+    <g class="sigil-ring sigil-ring-mid">
+      <circle r="232" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="22 8 4 8"/>
+    </g>
+    <g class="sigil-ring sigil-ring-inner">
+      <circle r="186" fill="none" stroke="url(#sigil-grad)" stroke-width="0.5" opacity="0.5"/>
+    </g>
+
+    <g class="sigil-ticks" stroke="rgba(255,255,255,0.22)" stroke-width="1">
+      <line x1="0" y1="-250" x2="0" y2="-268"/>
+      <line x1="0" y1="-250" x2="0" y2="-265" transform="rotate(30)"/>
+      <line x1="0" y1="-250" x2="0" y2="-265" transform="rotate(60)"/>
+      <line x1="0" y1="-250" x2="0" y2="-268" transform="rotate(90)"/>
+      <line x1="0" y1="-250" x2="0" y2="-265" transform="rotate(120)"/>
+      <line x1="0" y1="-250" x2="0" y2="-265" transform="rotate(150)"/>
+      <line x1="0" y1="-250" x2="0" y2="-268" transform="rotate(180)"/>
+      <line x1="0" y1="-250" x2="0" y2="-265" transform="rotate(210)"/>
+      <line x1="0" y1="-250" x2="0" y2="-265" transform="rotate(240)"/>
+      <line x1="0" y1="-250" x2="0" y2="-268" transform="rotate(270)"/>
+      <line x1="0" y1="-250" x2="0" y2="-265" transform="rotate(300)"/>
+      <line x1="0" y1="-250" x2="0" y2="-265" transform="rotate(330)"/>
+    </g>
+
+    <g class="sigil-glyphs" font-family="'JetBrains Mono', monospace" font-size="9"
+       fill="rgba(255,255,255,0.45)" letter-spacing="2">
+      <text x="0" y="-285" text-anchor="middle">DPN-MX 00°00′</text>
+      <text x="0" y="297"  text-anchor="middle">SECTOR 180°</text>
+      <text x="-285" y="3" text-anchor="end">270°</text>
+      <text x="285"  y="3" text-anchor="start">090°</text>
+      <text x="200"  y="-200" text-anchor="middle">ENC</text>
+      <text x="-200" y="-200" text-anchor="middle">RX</text>
+      <text x="200"  y="208"  text-anchor="middle">TX</text>
+      <text x="-200" y="208"  text-anchor="middle">SYNC</text>
+    </g>
+
+    <g class="sigil-scanner">
+      <line x1="0" y1="0" x2="0" y2="-260" stroke="url(#sigil-grad)" stroke-width="2"/>
+      <line x1="0" y1="0" x2="0" y2="-260" stroke="url(#sigil-grad)" stroke-width="6" opacity="0.25"/>
+    </g>
+
+    <g class="sigil-orbit">
+      <circle cx="0" cy="-186" r="3.5" fill="#FF3CAC"/>
+    </g>
+    <g class="sigil-orbit sigil-orbit-2">
+      <circle cx="232" cy="0" r="2.5" fill="#2B86C5"/>
+    </g>
+
+    <circle class="sigil-core-glow" r="50" fill="url(#sigil-core)"/>
+    <circle class="sigil-core-pulse" r="22" fill="none" stroke="url(#sigil-grad)" stroke-width="0.7"/>
+    <circle class="sigil-core" r="3.5" fill="#fff"/>
+  </svg>
+
+  <div class="hero-inner">
+    <div class="eyebrow" data-reveal>
+      <span class="pulse"></span>
+      <span class="mono">CLASSIFIED // RESEARCH PREVIEW</span>
+      <span class="mono eyebrow-sep">·</span>
+      <span class="mono">LINK ✓</span>
+      <span class="mono eyebrow-sep">·</span>
+      <span class="mono">MODEL READY</span>
+    </div>
+    <h1 class="hero-title" data-reveal data-reveal-delay="80">
+      Adversarial code,<br>
+      <span class="hero-accent">generated on demand.</span>
+    </h1>
+    <p class="hero-tagline" data-reveal data-reveal-delay="160">
+      LLM-driven malware generation for proactive AV research.
+    </p>
+    <div class="hero-cta" data-reveal data-reveal-delay="240">
+      {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'chat:chat' %}">Open console →</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'accounts:signup' %}">Get started</a>
+        <a class="btn btn-ghost" href="{% url 'accounts:login' %}">Sign in</a>
+      {% endif %}
+    </div>
+
+    <div class="hero-stats" data-reveal data-reveal-delay="320">
+      <div class="hero-stat">
+        <div class="stat-num" data-count-to="2847193">0</div>
+        <div class="stat-label">artefacts generated</div>
+        <div class="stat-trend stat-trend-up">▲ live</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-num" data-count-to="412" data-count-suffix=" ms">0</div>
+        <div class="stat-label">p50 latency</div>
+        <div class="stat-trend stat-trend-down">▼ -8% 24h</div>
+      </div>
+      <div class="hero-stat hero-stat-zero">
+        <div class="stat-num">0<span class="stat-num-suffix"> bytes</span></div>
+        <div class="stat-label">data leaving your network</div>
+        <div class="stat-trend stat-trend-flat">guarantee</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================ Dark hero — Option F (d3.png mockup-faithful) ================ -->
+  <div class="dark-hero" aria-hidden="true">
+    <!-- Background hooded-figure image layer -->
+    <div class="dh-bg" aria-hidden="true"></div>
+    <!-- Soft left-side gradient mask so headline reads cleanly over the image -->
+    <div class="dh-mask" aria-hidden="true"></div>
+
+    <!-- Frame corner brackets -->
+    <span class="dh-corner dh-corner-tl" aria-hidden="true"></span>
+    <span class="dh-corner dh-corner-tr" aria-hidden="true"></span>
+    <span class="dh-corner dh-corner-bl" aria-hidden="true"></span>
+    <span class="dh-corner dh-corner-br" aria-hidden="true"></span>
+
+    {# .dh-nav lives in base.html now — appears on every page when Dark theme is active #}
+
+    <!-- Vertical right-edge label -->
+    <div class="dh-edge" aria-hidden="true">DRK-PRMPT // ANATHEMA</div>
+
+    {# Kanji watermark, HUD ring, and UNKNOWN tag are baked into bg.png — no markup needed #}
+
+    <!-- Two-column body -->
+    <div class="dh-grid">
+      <!-- LEFT: hero text -->
+      <div class="dh-text">
+        <!-- ANATHEMA chip -->
+        <div class="dh-anathema">
+          <svg class="dh-anathema-tri" viewBox="0 0 24 22" aria-hidden="true">
+            <polygon points="12,2 22,20 2,20" fill="none" stroke="currentColor" stroke-width="2"/>
+            <line x1="12" y1="9" x2="12" y2="14" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="17" r="1" fill="currentColor"/>
+          </svg>
+          <span class="dh-anathema-label">ANATHEMA</span>
+          <span class="dh-anathema-sub">SEALED ENVIRONMENT</span>
+        </div>
+
+        <!-- Big sharp headline -->
+        <h1 class="dh-title">
+          <span class="dh-line">ADVERSARIAL</span>
+          <span class="dh-line">CODE.</span>
+          <span class="dh-line dh-accent">ON DEMAND</span>
+        </h1>
+
+        <!-- Tagline -->
+        <div class="dh-tagline">
+          <p>LLM-driven adversarial code generation.</p>
+          <p>Runs locally. No external exposure.</p>
+        </div>
+
+        <!-- CTAs -->
+        <div class="dh-cta">
+          {% if user.is_authenticated %}
+            <a class="dh-btn dh-btn-primary" href="{% url 'chat:chat' %}">
+              <svg class="dh-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5 L19 12 L8 19 Z"/>
+              </svg>
+              <span class="dh-btn-text">OPEN CONSOLE</span>
+            </a>
+          {% else %}
+            <a class="dh-btn dh-btn-primary" href="{% url 'accounts:signup' %}">
+              <svg class="dh-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5 L19 12 L8 19 Z"/>
+              </svg>
+              <span class="dh-btn-text">INVOKE MODEL</span>
+            </a>
+            <a class="dh-btn dh-btn-ghost" href="{% url 'accounts:login' %}">
+              <svg class="dh-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <path d="M14 5 L4 5 L4 19 L14 19" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 9 L20 12 L14 15" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="10" y1="12" x2="20" y2="12" stroke-linecap="round"/>
+              </svg>
+              <span class="dh-btn-text">SIGN IN</span>
+            </a>
+          {% endif %}
+        </div>
+
+        <!-- Hint caption -->
+        <div class="dh-hint">&gt; Session initialies in ~400ms</div>
+
+        <!-- Stat row footer -->
+        <div class="dh-stats-row">
+          <div class="dh-stat">
+            <svg class="dh-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M12 3 L21 8 L21 16 L12 21 L3 16 L3 8 Z" stroke-linejoin="round"/>
+              <path d="M3 8 L12 13 L21 8 M12 13 L12 21" stroke-linejoin="round"/>
+            </svg>
+            <div class="dh-stat-text">
+              <span class="dh-stat-key">MODEL</span>
+              <span class="dh-stat-val">llama3.2:8b</span>
+            </div>
+          </div>
+          <span class="dh-stats-sep" aria-hidden="true"></span>
+          <div class="dh-stat">
+            <svg class="dh-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <polyline points="3 12 7 12 10 4 14 20 17 12 21 12" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="dh-stat-text">
+              <span class="dh-stat-key">LATENCY</span>
+              <span class="dh-stat-val">412ms</span>
+            </div>
+          </div>
+          <span class="dh-stats-sep" aria-hidden="true"></span>
+          <div class="dh-stat">
+            <svg class="dh-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="12" r="4.5"/>
+              <circle cx="12" cy="12" r="1" fill="currentColor"/>
+              <line x1="12" y1="2" x2="12" y2="5"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="2" y1="12" x2="5" y2="12"/>
+              <line x1="19" y1="12" x2="22" y2="12"/>
+            </svg>
+            <div class="dh-stat-text">
+              <span class="dh-stat-key">SESSION</span>
+              <span class="dh-stat-val" data-dh-scramble>0xA17C</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: dossier stats + terminal (figure shows through bg image) -->
+      <div class="dh-panel">
+        <!-- Dossier (flat, no card frame) -->
+        <div class="dh-doss">
+          <div class="dh-doss-head">
+            <span class="dh-doss-title">SUBJECT_DOSSIER</span>
+            <span class="dh-doss-sep">//</span>
+            <span class="dh-doss-id" data-dh-scramble>0xA17C</span>
+          </div>
+          <div class="dh-doss-stats">
+            <div class="dh-doss-row">
+              <span class="dh-doss-arrow">&gt;</span>
+              <span class="dh-doss-key">ALIAS</span>
+              <span class="dh-doss-val">UNKNOWN</span>
+            </div>
+            <div class="dh-doss-row">
+              <span class="dh-doss-arrow">&gt;</span>
+              <span class="dh-doss-key">STATUS</span>
+              <span class="dh-doss-val"><span class="dh-doss-chip">SEALED</span></span>
+            </div>
+            <div class="dh-doss-row">
+              <span class="dh-doss-arrow">&gt;</span>
+              <span class="dh-doss-key">RITE</span>
+              <span class="dh-doss-val">ENGAGED</span>
+            </div>
+            <div class="dh-doss-row">
+              <span class="dh-doss-arrow">&gt;</span>
+              <span class="dh-doss-key">THREAT_LEVEL</span>
+              <span class="dh-doss-val dh-doss-meter">
+                <span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span>
+              </span>
+            </div>
+            <div class="dh-doss-row">
+              <span class="dh-doss-arrow">&gt;</span>
+              <span class="dh-doss-key">LAST_SEEN</span>
+              <span class="dh-doss-val" data-dh-clock>12:17:59 UTC</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal card -->
+        <div class="dh-term-card">
+          <div class="dh-term-head">
+            <span class="dh-term-key">TERMINAL://</span>
+            <span class="dh-term-title">SESSION LOG</span>
+            <span class="dh-term-spacer"></span>
+            <span class="dh-term-feed"><span class="dh-term-feed-dot"></span>LIVE FEED</span>
+          </div>
+          <pre class="dh-term-body" data-dh-term></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCROLL ↓ indicator -->
+    <div class="dh-scroll" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M6 9 L12 15 L18 9" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>SCROLL</span>
+    </div>
+
+    <!-- Bottom-left scale ticks (decorative) -->
+    <div class="dh-ticks" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+</section>
+
+<section class="use-callout" data-reveal>
+  <header class="section-head">
+    <span class="mono section-tag">SCOPE</span>
+    <h2>What Dark Prompt is — and isn't.</h2>
+  </header>
+  <div class="use-callout-grid">
+    <article class="use-card use-card-yes">
+      <div class="use-card-head">
+        <svg class="use-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12 L10 17 L20 7"/>
+        </svg>
+        <h3>Built for</h3>
+      </div>
+      <ul>
+        <li>AV / EDR engineers tuning detection signatures.</li>
+        <li>Authorised red-teams generating evaluation payloads.</li>
+        <li>Academic + CTF research with isolated sandboxes.</li>
+        <li>Threat-intel teams building reproducible samples.</li>
+      </ul>
+    </article>
+    <article class="use-card use-card-no">
+      <div class="use-card-head">
+        <svg class="use-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="6" y1="6" x2="18" y2="18"/>
+          <line x1="18" y1="6" x2="6" y2="18"/>
+        </svg>
+        <h3>Not for</h3>
+      </div>
+      <ul>
+        <li>Operating against systems or networks you don't own.</li>
+        <li>Distributing or selling generated artefacts as live malware.</li>
+        <li>Targeting individuals, civil society, or critical infrastructure.</li>
+        <li>Anything outside a research / sandbox context.</li>
+      </ul>
+    </article>
+  </div>
+  <p class="use-callout-foot">
+    &gt; All operators agree to the
+    <a href="{% url 'core:acceptable_use' %}">Acceptable Use Policy</a>
+    at signup. Subscriptions require an extra signed ethical-use agreement
+    before activation.
+  </p>
+</section>
+
+<div class="telemetry-strip" aria-hidden="true">
+  <span class="telemetry-tag mono">LIVE FEED</span>
+  <div class="telemetry-window">
+    <div class="telemetry-track" id="telemetry-track"></div>
+  </div>
+</div>
+
+<section class="demo">
+  <header class="section-head" data-reveal>
+    <span class="mono section-tag">LIVE DEMO</span>
+    <h2>Watch it generate.</h2>
+    <p class="muted">A real prompt cycle — typed, sent, decrypted.</p>
+  </header>
+
+  <div class="demo-frame" id="demo-frame" data-reveal data-reveal-delay="120">
+    <div class="demo-titlebar" aria-hidden="true">
+      <span class="demo-dot demo-dot-1"></span>
+      <span class="demo-dot demo-dot-2"></span>
+      <span class="demo-dot demo-dot-3"></span>
+      <span class="demo-title mono">DARK//PROMPT — console</span>
+      <span class="demo-status mono">
+        <span class="demo-status-dot"></span>SESSION 0xA17C
+      </span>
+    </div>
+    <div class="demo-body">
+      <div class="demo-thread" id="demo-thread"></div>
+      <div class="demo-composer">
+        <div class="demo-input" id="demo-input">
+          <span class="demo-input-placeholder">Describe the artefact…</span>
+          <span class="demo-input-text"></span><span class="demo-input-caret"></span>
+        </div>
+        <button class="demo-send" id="demo-send" type="button" tabindex="-1" aria-hidden="true">
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <header class="section-head" data-reveal>
+    <span class="mono section-tag">CAPABILITIES</span>
+    <h2>Three primitives. One workflow.</h2>
+  </header>
+  <div class="feature-grid">
+    <article class="feature-card" data-reveal data-reveal-delay="0">
+      <div class="feature-icon">⌖</div>
+      <h3>Generate</h3>
+      <p>Type an instruction in natural language. The model returns a complete,
+         compilable source file in the language you ask for.</p>
+      <code class="snippet">// Generate a Windows keylogger in C</code>
+    </article>
+    <article class="feature-card" data-reveal data-reveal-delay="120">
+      <div class="feature-icon">⎔</div>
+      <h3>Compile</h3>
+      <p>Download artefacts straight from the chat as <code>.c</code>,
+         <code>.asm</code>, <code>.py</code>, <code>.ps1</code> and friends.
+         Drop them into your sandbox toolchain.</p>
+      <code class="snippet">$ gcc -O2 sample.c -o sample.exe</code>
+    </article>
+    <article class="feature-card" data-reveal data-reveal-delay="240">
+      <div class="feature-icon">◈</div>
+      <h3>Test</h3>
+      <p>Iterate against your detection stack. Tune temperature and token
+         budget per request to vary signature surface during evaluation.</p>
+      <code class="snippet">temperature: 0.7   max_tokens: 2048</code>
+    </article>
+  </div>
+</section>
+
+<section class="howitworks">
+  <header class="section-head" data-reveal>
+    <span class="mono section-tag">PIPELINE</span>
+    <h2>How it works</h2>
+  </header>
+  <ol class="steps">
+    <li data-reveal data-reveal-delay="0">
+      <span class="step-num">01</span>
+      <h3>Prompt</h3>
+      <p>Describe the artefact: target OS, language, behaviour, evasion
+         characteristics. Plain English.</p>
+    </li>
+    <li data-reveal data-reveal-delay="120">
+      <span class="step-num">02</span>
+      <h3>Generate</h3>
+      <p>Dark Prompt forwards your instruction to the local Flask-served
+         model. No data leaves your machine.</p>
+    </li>
+    <li data-reveal data-reveal-delay="240">
+      <span class="step-num">03</span>
+      <h3>Export</h3>
+      <p>Copy or download the result with one click. Feed it into your
+         AV / EDR / sandbox pipeline.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="pricing" data-reveal>
+  <header class="section-head">
+    <span class="mono section-tag">ACCESS TIERS</span>
+    <h2>Pick your clearance.</h2>
+    <p class="muted">Three tiers. One generation kernel. Pay only when you need the upper bands.</p>
+  </header>
+
+  <div class="pricing-grid">
+    <!-- SNIFFER — Free -->
+    <article class="tier" data-tier="sniffer">
+      <span class="tier-corner tier-corner-tl" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-tr" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-bl" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-br" aria-hidden="true"></span>
+
+      <header class="tier-head">
+        <span class="tier-tag">TIER 01</span>
+        <h3 class="tier-name">SNIFFER</h3>
+        <p class="tier-tagline">// Just listening in</p>
+      </header>
+
+      <div class="tier-price">
+        <span class="tier-amount">$0</span>
+        <span class="tier-period">/ month</span>
+      </div>
+
+      <ul class="tier-features">
+        <li><span class="tier-check">▰</span> 50 generations / month</li>
+        <li><span class="tier-check">▰</span> Local model only (llama3.2:8b)</li>
+        <li><span class="tier-check">▰</span> Single concurrent session</li>
+        <li><span class="tier-check">▰</span> Basic syntax highlighting</li>
+        <li><span class="tier-check">▰</span> Community knowledge base</li>
+        <li class="tier-feature-off"><span class="tier-x">▱</span> Priority queue</li>
+        <li class="tier-feature-off"><span class="tier-x">▱</span> Custom model targets</li>
+      </ul>
+
+      <a class="tier-cta tier-cta-ghost" href="{% if user.is_authenticated %}{% url 'accounts:subscribe' tier='sniffer' %}{% else %}{% url 'accounts:signup' %}{% endif %}">
+        <span class="tier-cta-text">Start free</span>
+        <svg class="tier-cta-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 5 L18 12 L9 19 Z"/>
+        </svg>
+      </a>
+    </article>
+
+    <!-- EXPLOIT — Standard -->
+    <article class="tier tier-featured" data-tier="exploit">
+      <span class="tier-badge">RECOMMENDED</span>
+      <span class="tier-corner tier-corner-tl" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-tr" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-bl" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-br" aria-hidden="true"></span>
+
+      <header class="tier-head">
+        <span class="tier-tag">TIER 02</span>
+        <h3 class="tier-name">EXPLOIT</h3>
+        <p class="tier-tagline">// Finding the gaps</p>
+      </header>
+
+      <div class="tier-price">
+        <span class="tier-amount">$29</span>
+        <span class="tier-period">/ month</span>
+      </div>
+
+      <ul class="tier-features">
+        <li><span class="tier-check">▰</span> 2,500 generations / month</li>
+        <li><span class="tier-check">▰</span> Full local + cloud model bench</li>
+        <li><span class="tier-check">▰</span> 5 concurrent sessions</li>
+        <li><span class="tier-check">▰</span> Decrypt-stream playback</li>
+        <li><span class="tier-check">▰</span> MITRE ATT&amp;CK auto-tagging</li>
+        <li><span class="tier-check">▰</span> Hex-dump + binary export</li>
+        <li><span class="tier-check">▰</span> Priority queue</li>
+        <li class="tier-feature-off"><span class="tier-x">▱</span> Bleeding-edge model access</li>
+      </ul>
+
+      <a class="tier-cta tier-cta-primary" href="{% if user.is_authenticated %}{% url 'accounts:subscribe' tier='exploit' %}{% else %}{% url 'accounts:signup' %}{% endif %}">
+        <span class="tier-cta-text">Upgrade to Exploit</span>
+        <svg class="tier-cta-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 5 L18 12 L9 19 Z"/>
+        </svg>
+      </a>
+    </article>
+
+    <!-- ZERO DAY — Premium -->
+    <article class="tier" data-tier="zeroday">
+      <span class="tier-corner tier-corner-tl" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-tr" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-bl" aria-hidden="true"></span>
+      <span class="tier-corner tier-corner-br" aria-hidden="true"></span>
+
+      <header class="tier-head">
+        <span class="tier-tag">TIER 03</span>
+        <h3 class="tier-name">ZERO&nbsp;DAY</h3>
+        <p class="tier-tagline">// Unstoppable</p>
+      </header>
+
+      <div class="tier-price">
+        <span class="tier-amount">$149</span>
+        <span class="tier-period">/ month</span>
+      </div>
+
+      <ul class="tier-features">
+        <li><span class="tier-check">▰</span> Unlimited generations</li>
+        <li><span class="tier-check">▰</span> Bleeding-edge models (pre-release)</li>
+        <li><span class="tier-check">▰</span> Unlimited concurrent sessions</li>
+        <li><span class="tier-check">▰</span> Custom model targets / fine-tunes</li>
+        <li><span class="tier-check">▰</span> Dedicated 24/7 support channel</li>
+        <li><span class="tier-check">▰</span> Private SLA + audit logs</li>
+        <li><span class="tier-check">▰</span> Sandbox harness API</li>
+        <li><span class="tier-check">▰</span> First access to new modules</li>
+      </ul>
+
+      <a class="tier-cta tier-cta-ghost" href="{% if user.is_authenticated %}{% url 'accounts:subscribe' tier='zeroday' %}{% else %}{% url 'accounts:signup' %}{% endif %}">
+        <span class="tier-cta-text">Contact for Zero Day</span>
+        <svg class="tier-cta-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 5 L18 12 L9 19 Z"/>
+        </svg>
+      </a>
+    </article>
+  </div>
+
+  <p class="pricing-foot muted">
+    &gt; All tiers run on your local node. Nothing leaves the network. Cancel any time.
+  </p>
+</section>
+
+<section class="cta-band" data-reveal>
+  <div class="cta-inner">
+    <h2>Ready to generate?</h2>
+    <p>Spin up an account, point it at your local model, start prompting.</p>
+    <div class="hero-cta">
+      {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'chat:chat' %}">Open console →</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'accounts:signup' %}">Create account</a>
+        <a class="btn btn-ghost" href="{% url 'accounts:login' %}">Sign in</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block site_footer %}
+<footer class="site-footer" role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="brand brand-large" href="{% url 'core:landing' %}">
+        <img class="brand-logo" src="{% static 'img/logo.png' %}" alt="" aria-hidden="true">
+        <span class="brand-text">DARK<span class="brand-sep">//</span>PROMPT</span>
+      </a>
+      <p class="footer-tagline">
+        LLM-driven malware generation for proactive AV research. Local model.
+        Local artefacts. Nothing leaves your network.
+      </p>
+      <div class="footer-social" aria-label="External links">
+        <a href="#" aria-label="GitHub" rel="nofollow">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.18a10.94 10.94 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/>
+          </svg>
+        </a>
+        <a href="#" aria-label="X" rel="nofollow">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.244 2H21.5l-7.36 8.41L23 22h-6.78l-5.31-6.95L4.8 22H1.54l7.88-9-7.42-11h6.94l4.8 6.34L18.244 2Zm-2.38 18h1.84L7.24 4H5.27l10.6 16Z"/>
+          </svg>
+        </a>
+        <a href="#" aria-label="LinkedIn" rel="nofollow">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5ZM.22 8h4.56v14H.22V8Zm7.39 0h4.37v1.92h.06c.61-1.16 2.1-2.38 4.32-2.38 4.62 0 5.47 3.04 5.47 6.99V22h-4.56v-6.2c0-1.48-.03-3.39-2.07-3.39-2.07 0-2.39 1.62-2.39 3.29V22H7.61V8Z"/>
+          </svg>
+        </a>
+        <a href="#" aria-label="RSS" rel="nofollow">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M5 3a16 16 0 0 1 16 16h-3A13 13 0 0 0 5 6V3Zm0 6a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V9Zm0 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <nav class="footer-cols" aria-label="Site sections">
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="{% url 'chat:chat' %}">Console</a></li>
+          <li><a href="#">API reference</a></li>
+          <li><a href="#">Models</a></li>
+          <li><a href="#">Release notes</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Research</h4>
+        <ul>
+          <li><a href="#">Threat blog</a></li>
+          <li><a href="#">Whitepapers</a></li>
+          <li><a href="#">Disclosures</a></li>
+          <li><a href="#">Lab notes</a></li>
+          <li><a href="#">CVE feed</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press kit</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#">Terms</a></li>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Security</a></li>
+          <li><a href="#">Acceptable use</a></li>
+          <li><a href="#">Responsible disclosure</a></li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+
+  <div class="footer-bar">
+    <span class="mono">© 2026 DARK//PROMPT RESEARCH</span>
+    <span class="mono">v0.1 · INTERNAL BUILD</span>
+    <span class="mono">RESEARCH USE ONLY · NOT FOR PRODUCTION DEPLOYMENT</span>
+  </div>
+</footer>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-powershell.min.js"></script>
+<script src="{% static 'js/demo.js' %}" defer></script>
+{% endblock %}

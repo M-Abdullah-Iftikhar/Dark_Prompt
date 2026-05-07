@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py check)",
+      "Bash(curl -s -o /dev/null -w \"landing: %{http_code}\\\\n\" http://127.0.0.1:8765/)",
+      "Bash(curl -s -o /dev/null -w \"signup:  %{http_code}\\\\n\" http://127.0.0.1:8765/signup/)",
+      "Bash(curl -s -o /dev/null -w \"login:   %{http_code}\\\\n\" http://127.0.0.1:8765/login/)",
+      "Bash(node screenshots/test-responsive.mjs)",
+      "Bash(grep -q \"^done$\" \"C:\\\\Users\\\\ERAGON\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Study-Others-Projectsss-Dark-Prompt\\\\964741ec-9c11-484e-b112-8ffdbc2c0b57\\\\tasks\\\\bod66govo.output\")"
+    ]
+  }
+}

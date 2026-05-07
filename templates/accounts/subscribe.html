@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Activate {{ info.name }} · Dark Prompt{% endblock %}
+{% block page_class %}subscribe{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<section class="subscribe-shell">
+  <div class="subscribe-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="subscribe-head">
+      <span class="subscribe-tag">{{ info.tag }}</span>
+      <h1>Activate <span class="subscribe-name">{{ info.name }}</span></h1>
+      <p class="auth-sub">// {{ info.tagline }} · {{ info.price }} / month</p>
+    </header>
+
+    <div class="subscribe-warning">
+      <svg viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <polygon points="12,2 22,20 2,20"/>
+        <line x1="12" y1="9" x2="12" y2="14"/>
+        <circle cx="12" cy="17" r="1" fill="currentColor"/>
+      </svg>
+      <div class="subscribe-warning-text">
+        <strong>Ethical-use agreement required.</strong>
+        <span>This subscription unlocks higher generation limits and broader model access. Before we activate, you must complete the acknowledgements below. False answers may result in immediate account termination.</span>
+      </div>
+    </div>
+
+    <form method="post" novalidate class="subscribe-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="form-error">{{ form.non_field_errors|join:" · " }}</div>
+      {% endif %}
+
+      <fieldset class="subscribe-fieldset">
+        <legend>Operator identity</legend>
+        <label class="field">
+          <span class="field-label">Full legal name</span>
+          <div class="field-input">{{ form.full_name }}</div>
+          {% if form.full_name.errors %}
+            <small class="field-error">{{ form.full_name.errors|join:" · " }}</small>
+          {% endif %}
+        </label>
+        <label class="field">
+          <span class="field-label">Organisation <small class="field-hint">(optional)</small></span>
+          <div class="field-input">{{ form.organisation }}</div>
+        </label>
+        <label class="field">
+          <span class="field-label">Role</span>
+          <div class="field-input field-input-select">{{ form.role }}</div>
+          {% if form.role.errors %}
+            <small class="field-error">{{ form.role.errors|join:" · " }}</small>
+          {% endif %}
+        </label>
+      </fieldset>
+
+      <fieldset class="subscribe-fieldset">
+        <legend>Acknowledgements</legend>
+        <label class="auth-agree subscribe-agree">
+          {{ form.confirm_authorised }}
+          <span class="auth-agree-text">
+            I will only use Dark Prompt against systems I <strong>own or have
+            explicit written permission to test</strong>. I will not target
+            third-party infrastructure, individuals, or critical-infrastructure
+            operators.
+          </span>
+        </label>
+        {% if form.confirm_authorised.errors %}<small class="field-error">{{ form.confirm_authorised.errors|join:" · " }}</small>{% endif %}
+
+        <label class="auth-agree subscribe-agree">
+          {{ form.confirm_no_target }}
+          <span class="auth-agree-text">
+            I will <strong>not deploy, distribute, or sell</strong> generated
+            artefacts as functional malware against parties who have not consented.
+          </span>
+        </label>
+        {% if form.confirm_no_target.errors %}<small class="field-error">{{ form.confirm_no_target.errors|join:" · " }}</small>{% endif %}
+
+        <label class="auth-agree subscribe-agree">
+          {{ form.confirm_logging }}
+          <span class="auth-agree-text">
+            I accept that my generation sessions on this tier may be
+            <strong>logged for audit</strong>. Logs are kept locally by default
+            and centralised only if I opt-in.
+          </span>
+        </label>
+        {% if form.confirm_logging.errors %}<small class="field-error">{{ form.confirm_logging.errors|join:" · " }}</small>{% endif %}
+
+        <label class="auth-agree subscribe-agree">
+          {{ form.confirm_aup }}
+          <span class="auth-agree-text">
+            I have re-read and accept the
+            <a href="{% url 'core:acceptable_use' %}" target="_blank" rel="noopener">Acceptable Use Policy</a>
+            and the
+            <a href="{% url 'core:terms' %}" target="_blank" rel="noopener">Terms of Service</a>.
+          </span>
+        </label>
+        {% if form.confirm_aup.errors %}<small class="field-error">{{ form.confirm_aup.errors|join:" · " }}</small>{% endif %}
+      </fieldset>
+
+      <fieldset class="subscribe-fieldset">
+        <legend>Sign</legend>
+        <label class="field">
+          <span class="field-label">Re-type your full name to sign</span>
+          <div class="field-input">{{ form.signature }}</div>
+          <small class="field-hint">Must match the full name field above (case-insensitive).</small>
+          {% if form.signature.errors %}
+            <small class="field-error">{{ form.signature.errors|join:" · " }}</small>
+          {% endif %}
+        </label>
+      </fieldset>
+
+      <div class="subscribe-actions">
+        <a href="{% url 'core:landing' %}#pricing" class="auth-btn auth-btn-ghost auth-btn-back">
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12 H5"/>
+            <path d="M12 5 L5 12 L12 19"/>
+          </svg>
+          <span class="auth-btn-text">Back to tiers</span>
+        </a>
+        <button type="submit" class="auth-btn auth-btn-primary">
+          <span class="auth-btn-text">{{ info.cta }}</span>
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M9 5 L18 12 L9 19 Z"/>
+          </svg>
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}{{ doc_title }} · Dark Prompt{% endblock %}
+{% block page_class %}legal{% endblock %}
+
+{% block content %}
+<section class="legal-shell">
+  <article class="legal-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>{{ doc_title }}</h1>
+      <p class="auth-sub">{{ doc_tag }}</p>
+      <p class="legal-meta">Last updated: {% now "Y-m-d" %} · Version 0.1 — placeholder</p>
+    </header>
+
+    <div class="legal-body">
+      {% if doc_slug == "aup" %}
+        <h2>1. Permitted use</h2>
+        <p>
+          Dark Prompt generates source code intended for <strong>defensive AV /
+          EDR / detection research</strong>. You may use generated artefacts only
+          on systems and infrastructure that you own or have explicit written
+          permission to test.
+        </p>
+
+        <h2>2. Prohibited use</h2>
+        <ul>
+          <li>Deploying, distributing, or selling generated code as functional malware against third parties.</li>
+          <li>Operating generated artefacts against systems you do not own without authorisation.</li>
+          <li>Bypassing security controls of any system, network, or service that is not your own or contracted to you.</li>
+          <li>Targeting individuals, civil society, journalists, activists, or critical-infrastructure operators.</li>
+          <li>Creating, modifying, or refining content that targets minors or facilitates real-world harm.</li>
+          <li>Re-selling generation capacity, or providing it to parties who agree to less than these terms.</li>
+        </ul>
+
+        <h2>3. Audit + telemetry</h2>
+        <p>
+          Sessions are logged locally by default. Higher-tier accounts may opt into
+          centralised audit. We may suspend or terminate accounts that show patterns
+          consistent with prohibited use.
+        </p>
+
+        <h2>4. Reporting abuse</h2>
+        <p>
+          If you observe misuse or believe content was generated against the spirit
+          of this policy, email <code>abuse@darkprompt.local</code>.
+        </p>
+      {% elif doc_slug == "privacy" %}
+        <h2>1. What we collect</h2>
+        <p>
+          Email + username at signup. Generation logs are stored locally on your
+          node by default. Higher-tier accounts may opt-in to centralised audit
+          (encrypted at rest).
+        </p>
+
+        <h2>2. What we don't collect</h2>
+        <ul>
+          <li>Generated artefact contents — those stay on your node.</li>
+          <li>Your IP for analytics or sale.</li>
+          <li>Any third-party tracking by default (no Google Analytics, no Meta pixel).</li>
+        </ul>
+
+        <h2>3. Cookies + sessions</h2>
+        <p>
+          We set first-party session cookies for authentication. Optional
+          remember-me cookies last 30 days.
+        </p>
+
+        <h2>4. Data export + deletion</h2>
+        <p>
+          Email <code>privacy@darkprompt.local</code> for an export or deletion
+          request. We respond within 30 days.
+        </p>
+      {% else %}
+        <h2>1. Service</h2>
+        <p>
+          Dark Prompt is research tooling for adversarial code generation,
+          provided on an as-is basis with no warranty.
+        </p>
+
+        <h2>2. Account</h2>
+        <p>
+          You are responsible for safeguarding your credentials and for activity
+          carried out through your account.
+        </p>
+
+        <h2>3. Subscription + billing</h2>
+        <p>
+          Paid tiers renew monthly. Cancel any time; access continues until the
+          end of the paid period.
+        </p>
+
+        <h2>4. Termination</h2>
+        <p>
+          We may suspend or terminate accounts that violate the
+          <a href="{% url 'core:acceptable_use' %}">Acceptable Use Policy</a>.
+        </p>
+
+        <h2>5. Liability</h2>
+        <p>
+          To the maximum extent permitted by law, Dark Prompt is not liable for
+          indirect, incidental, or consequential damages arising from your use of
+          generated artefacts. Use a sandbox.
+        </p>
+      {% endif %}
+
+      <p class="legal-disclaimer">
+        &gt; This is placeholder text. Replace with reviewed legal copy before launch.
+      </p>
+    </div>
+
+    <div class="settings-actions">
+      <a href="{% url 'core:landing' %}" class="auth-btn auth-btn-ghost auth-btn-back">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12 H5"/>
+          <path d="M12 5 L5 12 L12 19"/>
+        </svg>
+        <span class="auth-btn-text">Back to home</span>
+      </a>
+    </div>
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Verify email · Dark Prompt{% endblock %}
+{% block page_class %}auth{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<section class="auth-shell auth-shell-signin">
+  <div class="auth-bg" aria-hidden="true"></div>
+  <div class="auth-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>Verify email</h1>
+      <p class="auth-sub">// Confirm your address to unlock the console</p>
+    </header>
+
+    {% if messages %}
+      <ul class="form-flash">
+        {% for m in messages %}
+          <li class="form-flash-{{ m.tags|default:'success' }}">{{ m }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="auth-success">
+      <div class="auth-success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <path d="M3 7l9 6 9-6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <p>A verification link has been dispatched to <strong>{{ user.email }}</strong>.</p>
+      <p class="muted">The link expires in 24 hours. Check your inbox (and spam folder) — once you click it, the chat console unlocks automatically.</p>
+
+      <form method="post" action="{% url 'accounts:verify_resend' %}" style="margin-top:18px">
+        {% csrf_token %}
+        <button type="submit" class="auth-btn auth-btn-ghost">
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/>
+          </svg>
+          <span class="auth-btn-text">Resend verification</span>
+        </button>
+      </form>
+
+      <p class="muted" style="margin-top:14px; font-size: 12px;">
+        Wrong address? <a href="{% url 'accounts:settings' %}">Update it in Settings</a>, then resend.
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+name: Deploy
+
+# Triggers Render's deploy hook after every successful push to main.
+# Render auto-deploy can also be enabled in the dashboard — this workflow
+# adds a CI gate (tests must pass) before the deploy fires.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    # Only run when the upstream CI workflow finished successfully on main.
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+
+    steps:
+      - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK secret is not set in this repository."
+            exit 1
+          fi
+          echo "==> Pinging Render deploy hook"
+          response=$(curl -fsS -X POST "$RENDER_DEPLOY_HOOK")
+          echo "Render response: $response"
+          echo "==> Deploy triggered. Watch progress at https://dashboard.render.com"

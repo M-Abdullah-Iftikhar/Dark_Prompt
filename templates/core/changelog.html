@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Changelog · Dark Prompt{% endblock %}
+{% block page_class %}changelog{% endblock %}
+{% block meta_description %}Release notes for Dark Prompt — every shipped feature, change, and removal.{% endblock %}
+{% block og_title %}Changelog · Dark Prompt{% endblock %}
+{% block og_description %}Every shipped feature, change, and removal — most recent at the top.{% endblock %}
+
+{% block content %}
+<section class="changelog-shell">
+  <div class="changelog-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="changelog-head">
+      <span class="changelog-tag mono">// CHANGELOG</span>
+      <h1 class="changelog-title">Release notes</h1>
+      <p class="changelog-sub">// Most recent at the top.</p>
+    </header>
+
+    <ol class="changelog-list">
+      {% for r in releases %}
+        <li class="changelog-row" id="v{{ r.version|cut:'.' }}">
+          <div class="changelog-row-meta">
+            <span class="changelog-version">v{{ r.version }}</span>
+            <span class="changelog-date mono">{{ r.date }}</span>
+            <span class="changelog-row-tag mono">{{ r.tag }}</span>
+          </div>
+          <div class="changelog-row-body">
+            <h2 class="changelog-row-headline">{{ r.headline }}</h2>
+            <ul class="changelog-items">
+              {% for kind, text in r.items %}
+                <li class="changelog-item">
+                  <span class="changelog-kind changelog-kind-{{ kind }}">{{ kind }}</span>
+                  <span class="changelog-text">{{ text }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </li>
+      {% endfor %}
+    </ol>
+
+    <div class="changelog-foot mono">
+      // History is curated. For the source-of-truth git log, ask in your terminal.
+    </div>
+  </div>
+</section>
+{% endblock %}

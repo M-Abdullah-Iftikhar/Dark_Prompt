@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}About · Dark Prompt{% endblock %}
+{% block page_class %}about{% endblock %}
+{% block meta_description %}Why Dark Prompt exists, who it serves, and the operator pledge that scopes its use to defensive AV / EDR research.{% endblock %}
+{% block og_title %}About · Dark Prompt{% endblock %}
+{% block og_description %}Defensive research tooling for AV / EDR engineers. Local-first. Scoped by an Acceptable Use Policy.{% endblock %}
+
+{% block content %}
+<section class="about-shell">
+  <div class="about-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="about-head">
+      <span class="about-tag mono">// MANIFESTO</span>
+      <h1 class="about-title">Defenders read the same code attackers write.</h1>
+      <p class="about-lead">
+        Dark Prompt is a local-first frontend for an offline LLM that generates the
+        kind of source code AV / EDR vendors, detection engineers, and CTF players
+        already need to study. Nothing leaves your network. Nothing is uploaded.
+        The model lives on your machine, and so does every artefact it produces.
+      </p>
+    </header>
+
+    <div class="about-grid">
+      <article class="about-block">
+        <h2 class="about-block-head">Why this exists</h2>
+        <p>
+          Static malware samples age fast. Live coverage requires <em>fresh</em>
+          variants — the same families seen in the wild, but expressed differently
+          enough to expose gaps in signatures, heuristics, and behavioural rules.
+        </p>
+        <p>
+          Generating those variants by hand is slow and inconsistent. A scoped LLM
+          generates them on demand, with knobs for technique, language, and target
+          OS. The output goes straight into a sandbox, a YARA rule, a Sigma stub —
+          wherever the team's pipeline actually consumes it.
+        </p>
+      </article>
+
+      <article class="about-block">
+        <h2 class="about-block-head">Who it is for</h2>
+        <ul class="about-list">
+          <li><strong>AV / EDR researchers</strong> probing detection coverage.</li>
+          <li><strong>Authorised red teams</strong> needing scoped tooling for a target they own or have written permission to assess.</li>
+          <li><strong>CTF players + students</strong> studying offensive techniques in a controlled environment.</li>
+          <li><strong>Detection engineers</strong> building YARA, Sigma, and EDR signatures against fresh artefacts.</li>
+        </ul>
+      </article>
+
+      <article class="about-block">
+        <h2 class="about-block-head">Who it is not for</h2>
+        <ul class="about-list about-list-no">
+          <li>Targeting third parties without explicit, documented authorisation.</li>
+          <li>Bypassing endpoint protection on systems you do not own.</li>
+          <li>Mass distribution of generated payloads.</li>
+          <li>Anything illegal under the laws of the operator's jurisdiction.</li>
+        </ul>
+        <p class="about-fineprint">
+          The <a href="{% url 'core:acceptable_use' %}">Acceptable Use Policy</a>
+          is binding. Subscription tiers gate access to higher-impact capabilities
+          behind a separate ethical agreement.
+        </p>
+      </article>
+
+      <article class="about-block">
+        <h2 class="about-block-head">How it works</h2>
+        <ol class="about-steps">
+          <li><span class="about-step-num">01</span><span>You write a prompt describing the artefact — language, target, technique, constraints.</span></li>
+          <li><span class="about-step-num">02</span><span>The request hits a <code>POST /generate</code> endpoint on a local LLM bound to <code>127.0.0.1</code>.</span></li>
+          <li><span class="about-step-num">03</span><span>The model returns source code; the console highlights it, lets you copy / download / hex-dump.</span></li>
+          <li><span class="about-step-num">04</span><span>Conversations are stored locally; nothing is sent to a third-party API.</span></li>
+        </ol>
+      </article>
+
+      <article class="about-block about-block-wide">
+        <h2 class="about-block-head">Operator's pledge</h2>
+        <p class="about-pledge mono">
+          // I will only run Dark Prompt against assets I own or am authorised to assess.<br>
+          // I will not weaponise output against third parties or production targets.<br>
+          // I will treat generated code as research material, not as a deployable payload.<br>
+          // I accept that all activity on this account is logged and may be reviewed.
+        </p>
+      </article>
+    </div>
+
+    <div class="about-actions">
+      <a href="{% url 'chat:chat' %}" class="auth-btn auth-btn-primary">
+        <span class="auth-btn-text">Open console</span>
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 5 L18 12 L9 19 Z"/>
+        </svg>
+      </a>
+      <a href="{% url 'core:changelog' %}" class="auth-btn auth-btn-ghost">
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6h18M3 12h12M3 18h18"/>
+        </svg>
+        <span class="auth-btn-text">Changelog</span>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

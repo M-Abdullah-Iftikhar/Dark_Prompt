@@ -1,0 +1,14 @@
+// DARK PROMPT — VERIFY ACCESS
+
+Operator {{ user.username }},
+
+Confirm this email address to activate your Dark Prompt console.
+
+{{ verify_url }}
+
+This link expires in {{ expires_hours }} hours. If you did not create
+an account with this email, you can ignore this message.
+
+—
+Dark Prompt
+// AUTOMATED. DO NOT REPLY.

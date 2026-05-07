@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}500 · System fault{% endblock %}
+{% block page_class %}error{% endblock %}
+
+{% block content %}
+<section class="error-shell">
+  <div class="error-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <span class="error-tag">// SYSTEM_FAULT</span>
+    <h1 class="error-code">500</h1>
+    <p class="error-headline">Something blew up on our end.</p>
+    <p class="error-meta">
+      The server hit an unexpected condition and could not complete the request.
+      The fault has been logged. Try the action again in a few seconds.
+    </p>
+
+    <div class="error-actions">
+      <a href="{% url 'core:landing' %}" class="auth-btn auth-btn-primary auth-btn-back">
+        <span class="auth-btn-text">Return home</span>
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 5 L18 12 L9 19 Z"/>
+        </svg>
+      </a>
+      <a href="{% url 'chat:chat' %}" class="auth-btn auth-btn-ghost">
+        <span class="auth-btn-text">Open console</span>
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="4 17 10 11 4 5"/>
+          <line x1="12" y1="19" x2="20" y2="19"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

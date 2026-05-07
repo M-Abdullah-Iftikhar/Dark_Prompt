@@ -1,0 +1,23 @@
+# Locked production dependencies for Dark Prompt.
+# Updated alongside the codebase. Bump cautiously — test locally first.
+
+# Core framework
+Django==5.2.13
+
+# WSGI server (Render's start command runs gunicorn)
+gunicorn==23.0.0
+
+# Static-files middleware so we don't need nginx in front of Django
+whitenoise==6.8.2
+
+# Local LLM proxy (gradio.live tunnels)
+gradio_client==2.5.0
+
+# .env loader — read by manage.py + wsgi.py
+python-dotenv==1.0.0
+
+# HTTP client used by the Groq title-naming helper
+requests==2.32.5
+
+# Image resizing for favicon generation (one-shot; safe to omit at runtime)
+Pillow==10.1.0

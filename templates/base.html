@@ -1,0 +1,205 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dark Prompt — adversarial code, generated on demand{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}LLM-driven malware generation for proactive AV research. Local model. Local artefacts. Nothing leaves your network.{% endblock %}">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="{% block meta_robots %}index,follow{% endblock %}">
+
+  <link rel="icon"             type="image/x-icon"   href="{% static 'img/favicon.ico' %}?v=4" sizes="16x16 32x32 48x48">
+  <link rel="icon"             type="image/png"      href="{% static 'img/favicon-64.png' %}?v=4" sizes="64x64">
+  <link rel="shortcut icon"    type="image/x-icon"   href="{% static 'img/favicon.ico' %}?v=4">
+  <link rel="apple-touch-icon" sizes="180x180"       href="{% static 'img/apple-touch-icon.png' %}?v=4">
+  <link rel="manifest"         href="{% url 'core:manifest' %}">
+
+  {# ---------- Open Graph / Twitter card ---------- #}
+  {% with og_image=request.scheme|add:"://"|add:request.get_host|add:"/static/img/og.svg" %}
+  <meta property="og:type"             content="{% block og_type %}website{% endblock %}">
+  <meta property="og:site_name"        content="Dark Prompt">
+  <meta property="og:locale"           content="en_US">
+  <meta property="og:title"            content="{% block og_title %}Dark Prompt — adversarial code, generated on demand{% endblock %}">
+  <meta property="og:description"      content="{% block og_description %}LLM-driven malware generation for proactive AV research. Local model. Local artefacts. Nothing leaves your network.{% endblock %}">
+  <meta property="og:url"              content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  <meta property="og:image"            content="{% block og_image %}{{ og_image }}{% endblock %}">
+  <meta property="og:image:type"       content="image/svg+xml">
+  <meta property="og:image:width"      content="1200">
+  <meta property="og:image:height"     content="630">
+  <meta property="og:image:alt"        content="Dark Prompt logo">
+
+  <meta name="twitter:card"            content="summary_large_image">
+  <meta name="twitter:title"           content="{% block twitter_title %}Dark Prompt — adversarial code, generated on demand{% endblock %}">
+  <meta name="twitter:description"     content="{% block twitter_description %}LLM-driven malware generation for proactive AV research.{% endblock %}">
+  <meta name="twitter:image"           content="{% block twitter_image %}{{ og_image }}{% endblock %}">
+  <meta name="twitter:image:alt"       content="Dark Prompt logo">
+  {% endwith %}
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Cinzel:wght@500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+  <link rel="stylesheet" href="{% static 'css/themes.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="page-{% block page_class %}default{% endblock %}">
+
+<div class="boot-overlay" id="boot-overlay" data-boot aria-hidden="true">
+  <div class="boot-content">
+    <div class="boot-brand">
+      <img class="brand-logo" src="{% static 'img/logo.png' %}" alt="" aria-hidden="true">
+      <span class="brand-text">DARK<span class="brand-sep">//</span>PROMPT</span>
+    </div>
+    <div class="boot-lines" id="boot-lines"></div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
+
+<div class="palette" id="cmd-palette" hidden role="dialog" aria-modal="true" aria-label="Command palette">
+  <div class="palette-backdrop" data-palette-close></div>
+  <div class="palette-panel">
+    <div class="palette-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+      </svg>
+      <input type="text" id="palette-input" placeholder="Search conversations, jump to…"
+             autocomplete="off" spellcheck="false">
+      <kbd class="palette-kbd mono">ESC</kbd>
+    </div>
+    <ul class="palette-list" id="palette-list" role="listbox"></ul>
+    <footer class="palette-foot mono">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>↵</kbd> select</span>
+      <span><kbd>ESC</kbd> close</span>
+    </footer>
+  </div>
+</div>
+
+<nav class="dh-nav" aria-label="Dark theme navigation">
+  <a class="dh-brand" href="{% url 'core:landing' %}">
+    <img class="dh-brand-logo" src="{% static 'img/logo.png' %}" alt="" aria-hidden="true">
+    <span class="dh-brand-text">Dark<span class="dh-brand-sep">//</span>Prompt</span>
+  </a>
+  <span class="dh-nav-dot"></span>
+  <span class="dh-nav-key">SYS://</span>
+  <span class="dh-nav-val" data-dh-scramble>NETRUNNER_LIVE</span>
+  <span class="dh-nav-sep">▌</span>
+  <span class="dh-nav-key">RITE//</span>
+  <span class="dh-nav-val">CRIMSON</span>
+  <span class="dh-nav-sep">▌</span>
+  <span class="dh-nav-key">SHARD//</span>
+  <span class="dh-nav-val dh-nav-warn">III/VII</span>
+  <span class="dh-nav-spacer"></span>
+  <span class="dh-nav-key">UTC//</span>
+  <span class="dh-nav-val" data-dh-clock>12:18:24</span>
+  <span class="dh-nav-sep">▌</span>
+  {% if user.is_authenticated %}
+    <div class="dh-user" data-dh-user>
+      <button class="dh-user-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">
+        <span class="avatar">{{ user.username|slice:":1"|upper }}</span>
+      </button>
+      <div class="dh-user-menu" role="menu" hidden>
+        <div class="dh-user-email" title="{{ user.email }}">{{ user.email }}</div>
+        <a class="dh-user-item" href="{% url 'accounts:settings' %}" role="menuitem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06A2 2 0 1 1 4.13 16.92l.06-.06A1.7 1.7 0 0 0 4.53 15a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.85a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.35 9c.27.65.86 1.07 1.56 1.04H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/>
+          </svg>
+          <span>Settings</span>
+        </a>
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button class="dh-user-item dh-user-logout" type="submit" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="8 17 3 12 8 7" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="3" y1="12" x2="15" y2="12" stroke-linecap="round"/>
+            </svg>
+            <span>Sign out</span>
+          </button>
+        </form>
+      </div>
+    </div>
+    <a class="dh-nav-btn dh-nav-btn-live" href="{% url 'chat:chat' %}" aria-label="Open console">
+      <span class="dh-nav-pulse"></span>
+      <span>SESSION ACTIVE</span>
+    </a>
+  {% else %}
+    <a class="dh-nav-btn dh-nav-btn-jack" href="{% url 'accounts:login' %}" aria-label="Sign in">
+      <svg class="dh-nav-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M8 5 L19 12 L8 19 Z"/>
+      </svg>
+      <span>JACK IN</span>
+    </a>
+  {% endif %}
+</nav>
+
+<nav class="topnav">
+  <a class="brand" href="{% url 'core:landing' %}">
+    <img class="brand-logo" src="{% static 'img/logo.png' %}" alt="" aria-hidden="true">
+    <span class="brand-text">DARK<span class="brand-sep">//</span>PROMPT</span>
+  </a>
+
+  <div class="nav-actions">
+    <div class="nav-status" aria-hidden="true">
+      <span class="status-dot"></span>
+      <span class="mono">OP // online</span>
+      <span class="mono node-id" data-op-node>NODE 0x····</span>
+      <span class="mono">ENC ✓</span>
+    </div>
+    {% if user.is_authenticated %}
+      <a class="nav-link" href="{% url 'chat:chat' %}">Chat</a>
+      <span class="nav-user">{{ user.username }}</span>
+      <form method="post" action="{% url 'accounts:logout' %}" class="nav-logout">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm">Sign out</button>
+      </form>
+    {% else %}
+      <a class="nav-link" href="{% url 'accounts:login' %}">Sign in</a>
+      <a class="btn btn-primary btn-sm" href="{% url 'accounts:signup' %}">Get started</a>
+    {% endif %}
+  </div>
+</nav>
+
+<main class="page">
+  {% block content %}{% endblock %}
+</main>
+
+{% block site_footer %}
+<footer class="page-footer">
+  <span class="mono">DARK//PROMPT</span>
+  <span class="muted">Defensive research tooling — not for production deployment of malicious payloads.</span>
+  <nav class="footer-links" aria-label="Footer">
+    <a href="{% url 'core:about' %}">About</a>
+    <a href="{% url 'core:changelog' %}">Changelog</a>
+    <a href="{% url 'core:status' %}">Status</a>
+    <a href="{% url 'core:acceptable_use' %}">AUP</a>
+  </nav>
+  <span class="footer-kbd-hint mono">Press <kbd>?</kbd> for shortcuts</span>
+</footer>
+{% endblock %}
+
+<script>
+  window.dpUrls = {
+    landing:  "{% url 'core:landing' %}",
+    chat:     "{% url 'chat:chat' %}",
+    {% if user.is_authenticated %}
+    settings: "{% url 'accounts:settings' %}",
+    activity: "{% url 'accounts:activity' %}",
+    {% endif %}
+  };
+</script>
+<script src="{% static 'js/effects.js' %}" defer></script>
+<script src="{% static 'js/audio-cues.js' %}" defer></script>
+<script src="{% static 'js/pre-copy.js' %}" defer></script>
+<script src="{% static 'js/shortcuts.js' %}" defer></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

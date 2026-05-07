@@ -1,0 +1,28 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+.env
+
+# Node / Playwright (dev-only screenshot tooling)
+node_modules/
+package-lock.json
+package.json
+
+# Screenshot / dev artefacts
+.chrome-profile/
+screenshots/
+
+# Sandbox build artefacts (Analyse + Compile output)
+runtime/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store

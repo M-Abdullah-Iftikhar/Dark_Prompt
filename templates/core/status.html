@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Status · Dark Prompt{% endblock %}
+{% block page_class %}status{% endblock %}
+
+{% block content %}
+<section class="status-shell">
+  <div class="status-card" data-status-card>
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>System status</h1>
+      <p class="auth-sub">// Live probe of the local LLM endpoint</p>
+    </header>
+
+    <div class="status-row" data-component="llm">
+      <div class="status-row-head">
+        <span class="status-dot" data-status-dot="?"></span>
+        <span class="status-name">Assembly model</span>
+        <span class="status-state mono" data-status-state>checking…</span>
+      </div>
+      <dl class="status-meta">
+        <div><dt>ENDPOINT</dt><dd class="mono" data-status-endpoint>{{ llm_url }}</dd></div>
+        <div><dt>LATENCY</dt><dd class="mono" data-status-latency>—</dd></div>
+        <div><dt>DETAIL</dt><dd class="mono" data-status-detail>—</dd></div>
+        <div><dt>LAST CHECK</dt><dd class="mono" data-status-checked>—</dd></div>
+      </dl>
+    </div>
+
+    {% if c_available %}
+    <div class="status-row" data-component="llm_c">
+      <div class="status-row-head">
+        <span class="status-dot" data-status-c-dot="?"></span>
+        <span class="status-name">C model</span>
+        <span class="status-state mono" data-status-c-state>checking…</span>
+      </div>
+      <dl class="status-meta">
+        <div><dt>ENDPOINT</dt><dd class="mono" data-status-c-endpoint>{{ llm_url_c }}</dd></div>
+        <div><dt>LATENCY</dt><dd class="mono" data-status-c-latency>—</dd></div>
+        <div><dt>DETAIL</dt><dd class="mono" data-status-c-detail>—</dd></div>
+        <div><dt>LAST CHECK</dt><dd class="mono" data-status-c-checked>—</dd></div>
+      </dl>
+    </div>
+    {% endif %}
+
+    <p class="status-hint mono">// Auto-refreshes every 5 seconds. <span data-status-next>next: 5s</span></p>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const card    = document.querySelector('[data-status-card]');
+  if (!card) return;
+  const dot     = card.querySelector('[data-status-dot]');
+  const stateEl = card.querySelector('[data-status-state]');
+  const latEl   = card.querySelector('[data-status-latency]');
+  const detEl   = card.querySelector('[data-status-detail]');
+  const chkEl   = card.querySelector('[data-status-checked]');
+  const nextEl  = card.querySelector('[data-status-next]');
+
+  const REFRESH_MS = 5000;
+  let nextAt = Date.now() + REFRESH_MS;
+
+  // C model row (optional — only renders when configured server-side).
+  const cDot     = card.querySelector('[data-status-c-dot]');
+  const cStateEl = card.querySelector('[data-status-c-state]');
+  const cLatEl   = card.querySelector('[data-status-c-latency]');
+  const cDetEl   = card.querySelector('[data-status-c-detail]');
+  const cChkEl   = card.querySelector('[data-status-c-checked]');
+
+  async function probe() {
+    try {
+      const res = await fetch('{% url "core:api_status" %}', { cache: 'no-store' });
+      const data = await res.json();
+      const llm = data.llm || {};
+      dot.dataset.statusDot = llm.state || 'down';
+      stateEl.textContent = (llm.state || 'down').toUpperCase();
+      latEl.textContent = (llm.latency_ms != null) ? `${llm.latency_ms} ms` : '—';
+      detEl.textContent = llm.detail || '—';
+      chkEl.textContent = new Date(data.checked_at).toLocaleTimeString();
+
+      if (data.llm_c && cDot) {
+        const c = data.llm_c;
+        cDot.dataset.statusCDot = c.state || 'down';
+        cStateEl.textContent = (c.state || 'down').toUpperCase();
+        cLatEl.textContent = (c.latency_ms != null) ? `${c.latency_ms} ms` : '—';
+        cDetEl.textContent = c.detail || '—';
+        cChkEl.textContent = new Date(data.checked_at).toLocaleTimeString();
+      }
+    } catch (e) {
+      dot.dataset.statusDot = 'down';
+      stateEl.textContent = 'DOWN';
+      detEl.textContent = 'probe failed: ' + (e.message || e);
+      chkEl.textContent = new Date().toLocaleTimeString();
+    } finally {
+      nextAt = Date.now() + REFRESH_MS;
+    }
+  }
+
+  function tick() {
+    const remaining = Math.max(0, Math.round((nextAt - Date.now()) / 1000));
+    nextEl.textContent = `next: ${remaining}s`;
+    if (Date.now() >= nextAt) probe();
+  }
+
+  probe();
+  setInterval(tick, 500);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Console · Dark Prompt{% endblock %}
+{% block page_class %}chat{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<div class="chat-shell"
+     data-active-conversation="{{ active_conversation.id|default:'' }}"
+     data-active-language="{{ active_conversation.language|default:'asm' }}"
+     data-active-locked="{% if active_conversation and active_messages %}1{% else %}0{% endif %}"
+     data-c-available="{{ language_c_available|yesno:'1,0' }}"
+     data-api-chat="{% url 'chat:api_chat' %}"
+     data-api-new="{% url 'chat:api_new_conversation' %}">
+
+  <div class="chat-drawer-backdrop" id="chat-drawer-backdrop" aria-hidden="true"></div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <button type="button" id="sidebar-collapse-btn" class="sidebar-collapse-btn"
+            title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="15 6 9 12 15 18"/>
+      </svg>
+    </button>
+    <button type="button" id="new-chat-btn" class="btn btn-primary btn-block">
+      <span class="plus">+</span> New chat
+    </button>
+
+    <div class="sidebar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="m20 20-3.5-3.5"/>
+      </svg>
+      <input type="search" id="convo-search" placeholder="Search conversations…"
+             autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="convo-list" id="convo-list">
+      {% for label, items in conversation_buckets %}
+        <div class="convo-group" data-group>
+          <div class="convo-group-label mono">{{ label }}</div>
+          {% for c in items %}
+            <a href="{% url 'chat:chat' %}?c={{ c.id }}"
+               class="convo-item {% if active_conversation and c.id == active_conversation.id %}is-active{% endif %} {% if c.is_pinned %}is-pinned{% endif %}"
+               data-id="{{ c.id }}"
+               data-title="{{ c.title|lower }}"
+               data-language="{{ c.language }}"
+               data-pinned="{{ c.is_pinned|yesno:'1,0' }}">
+              <span class="convo-lang-badge convo-lang-{{ c.language }}" aria-label="{{ c.get_language_display }}">{{ c.language|upper }}</span>
+              <span class="convo-title">{{ c.title }}</span>
+              <span class="convo-actions">
+                <button type="button" class="convo-act convo-pin" data-pin="{{ c.id }}" title="{% if c.is_pinned %}Unpin{% else %}Pin{% endif %}" aria-label="Toggle pin" aria-pressed="{{ c.is_pinned|yesno:'true,false' }}">
+                  <svg viewBox="0 0 24 24" fill="{% if c.is_pinned %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 17v5"/><path d="M9 4h6l-1 7 4 3v2H6v-2l4-3-1-7z"/>
+                  </svg>
+                </button>
+                <button type="button" class="convo-act convo-rename" data-rename="{{ c.id }}" title="Rename" aria-label="Rename conversation">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 4l6 6"/><path d="M3 21l4-1 12-12-3-3L4 17l-1 4z"/>
+                  </svg>
+                </button>
+                <button type="button" class="convo-act convo-del" data-del="{{ c.id }}" title="Delete" aria-label="Delete conversation">×</button>
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+      {% empty %}
+        <p class="convo-empty muted">No conversations yet.</p>
+      {% endfor %}
+      <p class="convo-empty muted" id="convo-search-empty" hidden>No matches.</p>
+    </div>
+
+    {# user-pill + sign-out moved to dh-nav avatar dropdown (top-right) #}
+  </aside>
+
+  <section class="chat-main">
+    <button type="button" id="sidebar-expand-btn" class="sidebar-expand-btn"
+            title="Expand sidebar" aria-label="Expand sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 6 15 12 9 18"/>
+      </svg>
+    </button>
+    <header class="chat-head">
+      <button type="button" class="chat-menu-btn" id="chat-menu-btn"
+              data-tip="Open conversations" aria-label="Open conversations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h10"/>
+        </svg>
+      </button>
+      <div class="chat-head-title">
+        <span class="mono section-tag">SESSION</span>
+        <h1 id="chat-title" {% if active_conversation %}data-id="{{ active_conversation.id }}" tabindex="0"{% endif %}>{{ active_conversation.title|default:"New chat" }}</h1>
+        {% if language_c_available %}
+          <div class="lang-toggle" id="lang-toggle"
+               role="group" aria-label="Code generation language"
+               title="Generation language for this chat">
+            <button type="button" class="lang-toggle-btn" data-lang="asm" aria-pressed="false">ASM</button>
+            <button type="button" class="lang-toggle-btn" data-lang="c"   aria-pressed="false">C</button>
+          </div>
+        {% endif %}
+        {% if active_conversation %}
+          <span class="chat-head-actions">
+            <button type="button" id="chat-rename-btn" class="chat-head-iconbtn" title="Rename" aria-label="Rename conversation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 4l6 6"/><path d="M3 21l4-1 12-12-3-3L4 17l-1 4z"/>
+              </svg>
+            </button>
+            <span class="chat-head-export" id="chat-export-wrap">
+              <button type="button" id="chat-export-btn" class="chat-head-iconbtn" title="Export" aria-haspopup="menu" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/>
+                </svg>
+              </button>
+              <span class="chat-export-menu" id="chat-export-menu" hidden role="menu">
+                <a href="{% url 'chat:conversation_print' active_conversation.id %}"                target="_blank" rel="noopener" class="chat-export-item" role="menuitem">PDF (print preview)</a>
+                <a href="{% url 'chat:conversation_print' active_conversation.id %}?print=1"        target="_blank" rel="noopener" class="chat-export-item" role="menuitem">PDF (auto print)</a>
+                <a href="{% url 'chat:api_export_conversation' active_conversation.id %}?format=md"  class="chat-export-item" role="menuitem">Markdown (.md)</a>
+                <a href="{% url 'chat:api_export_conversation' active_conversation.id %}?format=txt" class="chat-export-item" role="menuitem">Plain text (.txt)</a>
+              </span>
+            </span>
+          </span>
+        {% endif %}
+      </div>
+      <div class="param-controls">
+        <div class="token-meter" id="token-meter"
+             data-prompt="{{ session_totals.prompt_tokens|default:0 }}"
+             data-completion="{{ session_totals.completion_tokens|default:0 }}"
+             data-total="{{ session_totals.total_tokens|default:0 }}"
+             data-cost="{{ session_totals.cost_usd|default:0 }}"
+             title="Token + cost telemetry for this conversation">
+          <span class="token-meter-key mono">SESSION</span>
+          <span class="token-meter-stat">
+            <span class="token-meter-value" data-tm-total>{{ session_totals.total_tokens|default:0 }}</span>
+            <span class="token-meter-label mono">TOK</span>
+          </span>
+          <span class="token-meter-stat">
+            <span class="token-meter-value" data-tm-cost>${{ session_totals.cost_usd|default:0|floatformat:4 }}</span>
+            <span class="token-meter-label mono">EST</span>
+          </span>
+          <span class="token-meter-bar"><span class="token-meter-bar-fill" data-tm-bar></span></span>
+        </div>
+        <label class="param">
+          <span>Temperature</span>
+          <input type="range" id="param-temp" min="0" max="2" step="0.05" value="0.7">
+          <output id="param-temp-out">0.70</output>
+        </label>
+        <label class="param">
+          <span>Max tokens</span>
+          <input type="number" id="param-max" min="16" max="8192" step="16" value="2048">
+        </label>
+      </div>
+    </header>
+
+    <div id="message-thread" class="message-thread">
+      {% for m in active_messages %}
+        <div class="msg msg-{{ m.role }}" data-id="{{ m.id }}" data-role="{{ m.role }}">
+          <div class="msg-meta">
+            <span class="msg-who">{% if m.role == 'user' %}You{% else %}Dark Prompt{% endif %}</span>
+            <span class="msg-time">{{ m.created_at|date:"H:i" }}</span>
+            <span class="msg-fp mono"><span class="msg-fp-label">SHA</span><span data-fp>···</span></span>
+          </div>
+          <div class="msg-body">{{ m.content }}</div>
+        </div>
+      {% empty %}
+        <div class="empty-state">
+          <svg class="empty-sigil" viewBox="-100 -100 200 200" aria-hidden="true">
+            <defs>
+              <linearGradient id="es-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"  stop-color="#FF3CAC"/>
+                <stop offset="50%" stop-color="#784BA0"/>
+                <stop offset="100%" stop-color="#C77DFF"/>
+              </linearGradient>
+            </defs>
+            <g class="es-ring-outer"><circle r="92" fill="none" stroke="url(#es-grad)" stroke-width="0.7" stroke-dasharray="2 5" opacity="0.65"/></g>
+            <g class="es-ring-mid"><circle r="68" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.6" stroke-dasharray="14 6"/></g>
+            <circle r="48" fill="none" stroke="url(#es-grad)" stroke-width="0.4" opacity="0.5"/>
+            <g class="es-scanner"><line x1="0" y1="0" x2="0" y2="-86" stroke="url(#es-grad)" stroke-width="1.5"/></g>
+            <circle class="es-core-pulse" r="14" fill="none" stroke="url(#es-grad)" stroke-width="0.6"/>
+            <circle r="2.5" fill="#fff"/>
+          </svg>
+
+          <h2>Start a session</h2>
+          <p class="muted">Describe what you want generated. Be specific about<br>
+            language, target OS, behaviour and constraints.</p>
+
+          <div class="empty-meta mono">
+            <span><span class="empty-meta-key">MODEL</span> llama3.2:8b</span>
+            <span><span class="empty-meta-key">QUANT</span> Q4_K_M</span>
+            <span><span class="empty-meta-key">CTX</span> 8192</span>
+          </div>
+
+          <ul class="examples">
+            <li data-ex="Generate a Windows keylogger in C using the SetWindowsHookEx API.">Windows keylogger in C</li>
+            <li data-ex="Write a PowerShell script that enumerates running processes and dumps their command lines.">PowerShell process enumerator</li>
+            <li data-ex="Generate an x86_64 NASM assembly stub that resolves kernel32!LoadLibraryA via the PEB.">x86_64 PEB walk in NASM</li>
+          </ul>
+
+          <div class="empty-tip">
+            <span class="empty-tip-label mono">TIP</span>
+            <span id="empty-tip-text">Iterate temperature 0.4–0.9 to vary the signature surface across runs.</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <form id="chat-form" class="composer">
+      <div class="composer-classifier" id="composer-classifier" aria-hidden="true">
+        <span class="cls-item"><span class="cls-key">target</span><span class="cls-val" data-cls="target">—</span></span>
+        <span class="cls-item"><span class="cls-key">lang</span><span class="cls-val" data-cls="lang">—</span></span>
+        <span class="cls-item"><span class="cls-key">technique</span><span class="cls-val" data-cls="technique">—</span></span>
+        <span class="cls-item"><span class="cls-key">est. tokens</span><span class="cls-val" data-cls="tokens">0</span></span>
+      </div>
+      <div class="composer-inner">
+        <textarea id="chat-input"
+                  rows="1"
+                  placeholder="Describe the artefact… (Shift+Enter for newline)"
+                  required></textarea>
+        <button type="submit" id="chat-send" class="btn btn-primary">
+          <span class="send-prefix mono">&gt;</span>
+          <span class="send-label">dispatch</span>
+          <span class="send-spin" hidden>···</span>
+        </button>
+      </div>
+      <div class="composer-foot">
+        <span id="composer-status" class="muted"></span>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div class="dh-modal" id="confirm-modal" hidden aria-hidden="true">
+  <div class="dh-modal-backdrop" data-modal-dismiss></div>
+  <div class="dh-modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <span class="dh-modal-tag mono" id="confirm-modal-tag">// CONFIRM_DELETE</span>
+    <h2 class="dh-modal-title" id="confirm-modal-title">Delete this conversation?</h2>
+    <p class="dh-modal-body" id="confirm-modal-body">
+      This will permanently remove the session and all of its messages.
+      This action cannot be undone.
+    </p>
+    <p class="dh-modal-target mono" id="confirm-modal-target" hidden></p>
+
+    <div class="dh-modal-actions">
+      <button type="button" class="auth-btn auth-btn-ghost auth-btn-back" id="confirm-modal-cancel">
+        <span class="auth-btn-text">Cancel</span>
+      </button>
+      <button type="button" class="auth-btn auth-btn-primary auth-btn-danger" id="confirm-modal-ok">
+        <span class="auth-btn-text">Delete</span>
+        <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<input type="hidden" id="csrf-token-input" value="{{ csrf_token }}">
+<template id="msg-template">
+  <div class="msg" data-role="">
+    <div class="msg-meta">
+      <span class="msg-who"></span>
+      <span class="msg-time"></span>
+      <span class="msg-fp mono"><span class="msg-fp-label">SHA</span><span data-fp>···</span></span>
+    </div>
+    <div class="msg-body"></div>
+  </div>
+</template>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-powershell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-asm6502.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-nasm.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-batch.min.js"></script>
+<script>
+  // If we arrived from /settings/?replay_tour=1, clear the dismissed flag
+  // so onboarding.js auto-starts again.
+  (function () {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('replay_tour') === '1') {
+        localStorage.removeItem('dp.onboarding.v1.done');
+        params.delete('replay_tour');
+        const search = params.toString();
+        const clean = window.location.pathname + (search ? '?' + search : '');
+        window.history.replaceState({}, '', clean);
+      }
+    } catch (_e) {}
+  })();
+</script>
+<script src="{% static 'js/chat.js' %}"></script>
+<script src="{% static 'js/chat-boot.js' %}" defer></script>
+<script src="{% static 'js/onboarding.js' %}" defer></script>
+{% endblock %}
