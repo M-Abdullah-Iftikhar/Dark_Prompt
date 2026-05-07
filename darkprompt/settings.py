@@ -30,9 +30,18 @@ CSRF_TRUSTED_ORIGINS = [
     if o.strip()
 ]
 
-# Refuse to boot in prod with a dev secret or wide-open hosts. Friendlier than
-# a runtime CSRF/host failure; loud and immediate.
-if not DEBUG:
+# Refuse to boot in prod with a dev secret or wide-open hosts. Skipped for
+# build-time management commands (collectstatic / migrate / etc.) so a fresh
+# Render service can complete its first build before env vars are filled in.
+import sys as _sys
+_BUILD_CMDS = {
+    "collectstatic", "migrate", "makemigrations", "check", "shell",
+    "createsuperuser", "compilemessages", "diffsettings", "loaddata",
+    "dumpdata", "test", "showmigrations",
+}
+_is_build_phase = len(_sys.argv) > 1 and _sys.argv[1] in _BUILD_CMDS
+
+if not DEBUG and not _is_build_phase:
     if SECRET_KEY == DEV_SECRET_KEY:
         raise RuntimeError(
             "DJANGO_SECRET_KEY is unset (using the dev fallback). "
