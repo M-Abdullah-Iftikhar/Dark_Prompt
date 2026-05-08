@@ -23,8 +23,7 @@ services:
     autoDeploy: true                  # enabled — GitHub Actions can also trigger via deploy hook
 
     dockerfilePath: ./Dockerfile      # Dockerfile installs MinGW + NASM via apt, runs collectstatic
-    startCommand: "python manage.py migrate --no-input && gunicorn darkprompt.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 300"
-    healthCheckPath: /
+    healthCheckPath: /                # CMD in Dockerfile runs migrate + gunicorn
 
     envVars:
       # ----- Database (auto-wired from the Postgres service above) -----
