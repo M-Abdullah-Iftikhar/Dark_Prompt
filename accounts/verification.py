@@ -5,7 +5,8 @@ before clicking the link, the link is automatically invalidated.
 """
 from django.conf import settings
 from django.core import signing
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.templatetags.static import static
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
@@ -46,20 +47,27 @@ def send_verification_email(request, user):
     token = make_token(user)
     path = reverse("accounts:verify_email", args=[token])
     verify_url = request.build_absolute_uri(path)
+    ctx = {
+        "user":          user,
+        "verify_url":    verify_url,
+        "expires_hours": int(VERIFY_MAX_AGE // 3600),
+        "logo_url":      request.build_absolute_uri(static("img/logo.png")),
+        "site_url":      request.build_absolute_uri("/"),
+    }
 
     subject = "Dark Prompt — verify your access"
-    body = render_to_string("accounts/email/verify_email.txt", {
-        "user": user,
-        "verify_url": verify_url,
-        "expires_hours": int(VERIFY_MAX_AGE // 3600),
-    })
-    send_mail(
-        subject,
-        body,
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
+    text_body = render_to_string("accounts/email/verify_email.txt",  ctx)
+    html_body = render_to_string("accounts/email/verify_email.html", ctx)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
     )
+    msg.attach_alternative(html_body, "text/html")
+    msg.send(fail_silently=False)
+
     if profile is not None:
         profile.last_verify_sent = timezone.now()
         profile.save(update_fields=["last_verify_sent"])

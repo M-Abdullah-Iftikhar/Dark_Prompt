@@ -8,7 +8,8 @@ log = logging.getLogger("accounts.email")
 from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.templatetags.static import static
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
@@ -173,19 +174,24 @@ def _send_password_reset_email(request, user):
     path   = reverse("accounts:password_reset_confirm", args=[uidb64, token])
     reset_url = request.build_absolute_uri(path)
     ctx = {
-        "user": user,
-        "reset_url": reset_url,
+        "user":            user,
+        "reset_url":       reset_url,
         "expires_minutes": int(settings.PASSWORD_RESET_TIMEOUT // 60),
+        "logo_url":        request.build_absolute_uri(static("img/logo.png")),
+        "site_url":        request.build_absolute_uri("/"),
     }
-    subject = "Dark Prompt — reset your access key"
-    body = render_to_string("accounts/email/password_reset.txt", ctx)
-    send_mail(
-        subject,
-        body,
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
+    subject   = "Dark Prompt — reset your access key"
+    text_body = render_to_string("accounts/email/password_reset.txt",  ctx)
+    html_body = render_to_string("accounts/email/password_reset.html", ctx)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
     )
+    msg.attach_alternative(html_body, "text/html")
+    msg.send(fail_silently=False)
 
 
 @rate_limit(prefix="forgot", limit=5, window_seconds=3600)  # 5 per IP per hour
