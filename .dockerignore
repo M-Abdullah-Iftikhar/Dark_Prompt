@@ -1,0 +1,30 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+.env
+
+# Git metadata (never needed inside the image)
+.git/
+.gitignore
+
+# Node / dev tooling
+node_modules/
+package-lock.json
+package.json
+
+# Dev / test artefacts
+runtime/
+screenshots/
+.chrome-profile/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store

@@ -16,14 +16,14 @@ databases:
 services:
   - type: web
     name: dark-prompt
-    runtime: python
+    runtime: docker                   # switched from "python" to get root access during image
     region: oregon                    # change to "frankfurt" / "singapore" for lower latency
     plan: free                        # bump to "starter" ($7/mo) to skip cold starts + add disk
     branch: main                      # auto-deploy on push to this branch
     autoDeploy: true                  # enabled — GitHub Actions can also trigger via deploy hook
 
-    buildCommand: "./build.sh"
-    startCommand: "gunicorn darkprompt.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 300"
+    dockerfilePath: ./Dockerfile      # Dockerfile installs MinGW + NASM via apt, runs collectstatic
+    startCommand: "python manage.py migrate --no-input && gunicorn darkprompt.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 300"
     healthCheckPath: /
 
     envVars:
