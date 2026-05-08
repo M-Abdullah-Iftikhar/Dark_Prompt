@@ -8702,3 +8702,107 @@ a:focus-visible{
 [data-theme="dark"] .faq-a strong{
   color: #F7F3EE;
 }
+
+/* -------------------------------------------------------------------------
+ * Groq-powered conversational wrapper
+ *   .msg-intro          — short "Here's the keylogger you requested:" lead-in
+ *   .msg-card.summary   — "what it does" card under the code block
+ *   .msg-card.usage     — "how to use" card under the code block
+ *   .msg-suggestions    — clickable example-prompt chips (chat-mode replies)
+ *   .suggestion-chip    — individual chip; clicking writes into the composer
+ * ----------------------------------------------------------------------- */
+.msg-intro{
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 0 0 12px;
+}
+
+.msg-card{
+  display: block;
+  margin: 14px 0 0;
+  padding: 10px 14px 12px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.msg-card-tag{
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.msg-card-body{
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.msg-card.msg-usage .msg-card-tag{
+  color: #7DDBA0;
+}
+
+.msg-chat-reply{
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+
+.msg-suggestions{
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.msg-suggestions-label{
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.msg-suggestions-list{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.suggestion-chip{
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: left;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: var(--transition);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suggestion-chip:hover,
+.suggestion-chip:focus-visible{
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
+  outline: none;
+}
+.suggestion-chip:active{
+  transform: translateY(1px);
+}
+@media (max-width: 600px){
+  .suggestion-chip{
+    white-space: normal;
+    border-radius: 8px;
+  }
+}

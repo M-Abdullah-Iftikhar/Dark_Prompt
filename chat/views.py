@@ -1,8 +1,11 @@
 """Chat UI + JSON API that proxies to the local LLM."""
 import functools
 import json
+import logging
 import re
 from datetime import timedelta
+
+log = logging.getLogger("chat.views")
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -17,8 +20,28 @@ from accounts.models import ActivityEvent, ApiKey, UserProfile
 from accounts import tiers as tier_lib
 
 from . import llm as llm_backend
+from .assistant import classify_prompt, explain_code
+from .fallback import pick_fallback
 from .naming import infer_chat_title
 from .models import Conversation, Message
+
+
+# Inline marker prepended to assistant Message.content so reloads can rebuild
+# the same intro / summary / usage / suggestions wrapper without a DB schema
+# change. The frontend strips the marker before rendering the body.
+META_MARK_OPEN  = "<!-- DP_META: "
+META_MARK_CLOSE = " -->\n"
+
+
+def _wrap_with_meta(meta: dict, body: str) -> str:
+    """Prepend a JSON meta block to a Message body."""
+    if not meta:
+        return body
+    try:
+        encoded = json.dumps(meta, ensure_ascii=False, separators=(",", ":"))
+    except Exception:
+        return body
+    return f"{META_MARK_OPEN}{encoded}{META_MARK_CLOSE}{body}"
 
 
 def _user_tier_limits(user):
@@ -318,11 +341,9 @@ def api_chat(request):
         active_lang = conversation.language
     else:
         active_lang = requested_lang
-        if active_lang == Conversation.LANG_C and not llm_backend.is_language_available(Conversation.LANG_C):
-            return JsonResponse({
-                "error": "llm_unreachable",
-                "detail": "C-mode is not configured (LLM_API_URL_C is empty).",
-            }, status=502)
+        # No is_language_available() guard here — if the live C backend is
+        # offline, the fallback corpus handler in the except block below
+        # will serve a curated sample instead.
         conversation = Conversation.objects.create(
             user=request.user,
             title=_summarise(instruction),
@@ -338,6 +359,61 @@ def api_chat(request):
         prompt_tokens=_estimate_tokens(instruction),
     )
 
+    # ----- Intent classification (Groq-powered, with local heuristic) -----
+    # If the user said "hi" or asked "what can you do" we don't waste a Gradio
+    # call — we hand back a friendly chat reply + clickable example prompts.
+    intent = classify_prompt(instruction, lang=active_lang)
+    if intent.get("kind") == "chat":
+        meta = {
+            "kind":        "chat",
+            "suggestions": intent.get("suggestions") or [],
+        }
+        body = (intent.get("response") or "").strip() or "I'm Dark Prompt. Ask me to generate something."
+        assistant_msg = Message.objects.create(
+            conversation=conversation,
+            role=Message.ASSISTANT,
+            content=_wrap_with_meta(meta, body),
+            temperature=temperature,
+            max_tokens=max_tokens,
+            completion_tokens=_estimate_tokens(body),
+        )
+        # First-exchange title nicety still applies — but for chat-only flows
+        # the prompt is usually a greeting, so skip Groq title inference and
+        # leave the auto-summarise title in place.
+        conversation.save(update_fields=["updated_at"])
+
+        p, c, cost = _conversation_totals(conversation)
+        return JsonResponse({
+            "conversation": {
+                "id":       conversation.id,
+                "title":    conversation.title,
+                "language": conversation.language,
+            },
+            "user_message": {
+                "id":            user_msg.id,
+                "role":          "user",
+                "content":       user_msg.content,
+                "created_at":    user_msg.created_at.isoformat(),
+                "prompt_tokens": user_msg.prompt_tokens,
+            },
+            "assistant_message": {
+                "id":          assistant_msg.id,
+                "role":        "assistant",
+                "kind":        "chat",
+                "content":     body,
+                "suggestions": meta["suggestions"],
+                "created_at":  assistant_msg.created_at.isoformat(),
+                "completion_tokens": assistant_msg.completion_tokens,
+            },
+            "session_totals": {
+                "prompt_tokens":     p,
+                "completion_tokens": c,
+                "total_tokens":      p + c,
+                "cost_usd":          round(cost, 4),
+            },
+        })
+
+    fallback_source = None  # filename of the offline-corpus sample, if used
     try:
         generated = llm_backend.generate(
             instruction,
@@ -348,34 +424,37 @@ def api_chat(request):
         # The Gradio path doesn't return token counts, so leave `data` empty;
         # the estimator below fills in prompt_tokens / completion_tokens.
         data = {}
-    except llm_backend.LLMUnreachable as exc:
-        return JsonResponse({
-            "error": "llm_unreachable",
-            "detail": exc.detail or f"Could not reach LLM backend at {settings.LLM_API_URL}.",
-            "conversation_id": conversation.id,
-            "user_message_id": user_msg.id,
-        }, status=502)
-    except llm_backend.LLMTimeout as exc:
-        return JsonResponse({
-            "error": "llm_timeout",
-            "detail": exc.detail or "LLM backend timed out.",
-            "conversation_id": conversation.id,
-            "user_message_id": user_msg.id,
-        }, status=504)
-    except llm_backend.LLMBadResponse as exc:
-        return JsonResponse({
-            "error": "llm_bad_response",
-            "detail": exc.detail or "LLM returned non-JSON output.",
-            "conversation_id": conversation.id,
-            "user_message_id": user_msg.id,
-        }, status=502)
-    except llm_backend.LLMError as exc:
-        return JsonResponse({
-            "error": "llm_error",
-            "detail": exc.detail,
-            "conversation_id": conversation.id,
-            "user_message_id": user_msg.id,
-        }, status=502)
+    except (
+        llm_backend.LLMUnreachable,
+        llm_backend.LLMTimeout,
+        llm_backend.LLMBadResponse,
+        llm_backend.LLMError,
+    ) as exc:
+        # The live model is down — try the offline corpus instead of erroring out.
+        # If the corpus is empty / unreadable we still surface the original error.
+        fb = pick_fallback(instruction, active_lang)
+        if fb is None:
+            error_map = {
+                llm_backend.LLMUnreachable:  ("llm_unreachable", 502, f"Could not reach LLM backend at {settings.LLM_API_URL}."),
+                llm_backend.LLMTimeout:      ("llm_timeout",     504, "LLM backend timed out."),
+                llm_backend.LLMBadResponse:  ("llm_bad_response", 502, "LLM returned non-JSON output."),
+                llm_backend.LLMError:        ("llm_error",        502, ""),
+            }
+            code, status_code, default_detail = error_map.get(
+                type(exc), ("llm_error", 502, "")
+            )
+            return JsonResponse({
+                "error":  code,
+                "detail": getattr(exc, "detail", "") or default_detail,
+                "conversation_id": conversation.id,
+                "user_message_id": user_msg.id,
+            }, status=status_code)
+        fallback_source, generated = fb
+        data = {}
+        log.info(
+            "LLM unreachable (%s) — served fallback %s (lang=%s)",
+            type(exc).__name__, fallback_source, active_lang,
+        )
 
     # Prefer real counts from the LLM if it sent them; fall back to estimator.
     prompt_tokens = (
@@ -390,10 +469,26 @@ def api_chat(request):
         user_msg.prompt_tokens = prompt_tokens
         user_msg.save(update_fields=["prompt_tokens"])
 
+    # ----- Wrap the generation with a Groq-produced intro / summary / usage.
+    # Best-effort: if Groq is down or unconfigured, we just store the bare code
+    # and the frontend renders without the wrapper. -----
+    explanation = explain_code(instruction, generated, lang=active_lang)
+    if explanation:
+        meta = {
+            "kind":    "code",
+            "intro":   explanation.get("intro", ""),
+            "summary": explanation.get("summary", ""),
+            "usage":   explanation.get("usage", ""),
+        }
+        stored_content = _wrap_with_meta(meta, generated)
+    else:
+        meta = None
+        stored_content = generated
+
     assistant_msg = Message.objects.create(
         conversation=conversation,
         role=Message.ASSISTANT,
-        content=generated,
+        content=stored_content,
         temperature=temperature,
         max_tokens=max_tokens,
         completion_tokens=completion_tokens,
@@ -433,10 +528,17 @@ def api_chat(request):
             "prompt_tokens": user_msg.prompt_tokens,
         },
         "assistant_message": {
-            "id": assistant_msg.id,
-            "role": "assistant",
-            "content": assistant_msg.content,
-            "created_at": assistant_msg.created_at.isoformat(),
+            "id":          assistant_msg.id,
+            "role":        "assistant",
+            "kind":        "code",
+            # `content` here is the BARE code (no marker) so the frontend's
+            # existing code-block renderer just works. The marker is stored
+            # in the DB so reloads still get the wrapper.
+            "content":     generated,
+            "intro":       (meta or {}).get("intro", ""),
+            "summary":     (meta or {}).get("summary", ""),
+            "usage":       (meta or {}).get("usage", ""),
+            "created_at":  assistant_msg.created_at.isoformat(),
             "completion_tokens": assistant_msg.completion_tokens,
         },
         "session_totals": {
@@ -458,11 +560,6 @@ def api_new_conversation(request):
     lang = (payload.get("language") or Conversation.LANG_ASM).lower()
     if lang not in {Conversation.LANG_ASM, Conversation.LANG_C}:
         lang = Conversation.LANG_ASM
-    if lang == Conversation.LANG_C and not llm_backend.is_language_available(Conversation.LANG_C):
-        return JsonResponse({
-            "error": "llm_unreachable",
-            "detail": "C-mode is not configured (LLM_API_URL_C is empty).",
-        }, status=502)
     convo = Conversation.objects.create(user=request.user, title="New chat", language=lang)
     return JsonResponse({"id": convo.id, "title": convo.title, "language": convo.language})
 
@@ -585,11 +682,6 @@ def api_set_conversation_language(request, pk):
             "error": "language_locked",
             "detail": "Conversation already has messages — language is fixed.",
         }, status=409)
-    if new_lang == Conversation.LANG_C and not llm_backend.is_language_available(Conversation.LANG_C):
-        return JsonResponse({
-            "error": "llm_unreachable",
-            "detail": "C-mode is not configured (LLM_API_URL_C is empty).",
-        }, status=502)
     convo.language = new_lang
     convo.save(update_fields=["language"])
     return JsonResponse({"id": convo.id, "language": convo.language})

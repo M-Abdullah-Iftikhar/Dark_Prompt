@@ -25,7 +25,8 @@
 
   // ---------- language (asm | c) -----------------------------------------
   const LANG_KEY = 'dp.lang.preference';
-  const cAvailable = shell.dataset.cAvailable === '1';
+  // C is always selectable now — when the live C backend is empty the
+  // server falls back to FallbackCodes/Codes_C/ samples.
 
   // Resolve the active language — for the chat the user is currently viewing.
   let activeLang = (shell.dataset.activeLanguage || 'asm').toLowerCase();
@@ -36,7 +37,7 @@
   function readPreferredLang() {
     try {
       const v = (localStorage.getItem(LANG_KEY) || '').toLowerCase();
-      if (v === 'c' && cAvailable) return 'c';
+      if (v === 'c')   return 'c';
       if (v === 'asm') return 'asm';
     } catch (_e) {}
     return activeLang || 'asm';
@@ -72,10 +73,6 @@
 
   async function switchLanguage(toLang) {
     if (toLang !== 'asm' && toLang !== 'c') return;
-    if (toLang === 'c' && !cAvailable) {
-      toast('<span class="toast-tag toast-tag-warn">C MODEL OFFLINE</span><span class="toast-meta">LLM_API_URL_C is empty</span>');
-      return;
-    }
     // Case A — no active conversation: just update preference + repaint.
     if (!activeId) {
       pendingLang = toLang;
@@ -999,39 +996,93 @@
       thread.scrollTop = thread.scrollHeight;
 
       const codeEl = block.querySelector('code');
+      const gutterEl = block.querySelector('.ln-gutter');
       const original = code;
-      const duration = Math.min(1100, 350 + original.length * 0.6);
+      // Reset the gutter so line numbers grow alongside the typed code
+      // instead of pre-allocating all of them up front.
+      if (gutterEl) gutterEl.innerHTML = '<span class="ln">1</span>';
+      let visibleLines = 1;
+      function appendGutterLines(n) {
+        if (!gutterEl || n <= 0) return;
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < n; i++) {
+          visibleLines++;
+          const sp = document.createElement('span');
+          sp.className = 'ln';
+          sp.textContent = String(visibleLines);
+          frag.appendChild(sp);
+        }
+        gutterEl.appendChild(frag);
+      }
+      // Typewriter feel: chars appended progressively at a steady rate.
+      // ~260 chars/sec is roughly "fast typist" — readable but not draggy.
+      // Bound by [1.2s, 9s] so tiny snippets aren't instant and huge files
+      // don't take forever.
+      const charsPerSec = 260;
+      const minMs = 1200;
+      const maxMs = 9000;
+      const naive = (original.length / charsPerSec) * 1000;
+      const duration = Math.max(minMs, Math.min(maxMs, naive));
       const start = performance.now();
+
+      // Detect if the user has scrolled up — if so, don't auto-pin to bottom
+      // (otherwise typing keeps yanking them back down).
+      const isPinned = () => {
+        const pad = 80;
+        return (thread.scrollHeight - thread.clientHeight - thread.scrollTop) < pad;
+      };
+      let stickToBottom = isPinned();
+
+      // Render an empty <code> with a blinking caret while typing.
+      codeEl.textContent = '';
+      const caret = document.createElement('span');
+      caret.className = 'type-caret';
+      codeEl.appendChild(caret);
 
       function settle() {
         block.classList.remove('is-decrypting');
+        if (caret.parentNode) caret.parentNode.removeChild(caret);
         const normLang = block.dataset.lang;
         if (normLang && Prism.languages[normLang]) {
           codeEl.innerHTML = Prism.highlight(original, Prism.languages[normLang], normLang);
         } else {
           codeEl.textContent = original;
         }
+        // Final gutter rebuild — guarantees gutter count == code line count
+        // even if the typing was cancelled mid-flight or the chunk math
+        // missed a newline at the very tail.
+        if (gutterEl) {
+          const total = original.split('\n').length;
+          let html = '';
+          for (let i = 1; i <= total; i++) html += `<span class="ln">${i}</span>`;
+          gutterEl.innerHTML = html;
+        }
         maybeAddExpand(block);
         resolve();
       }
 
+      let lastWant = 0;
       function tick(now) {
         if (signal && signal.aborted) { settle(); return; }
         const t = Math.min(1, (now - start) / duration);
-        // ease-out cubic
-        const eased = 1 - Math.pow(1 - t, 3);
-        const revealUpTo = Math.floor(eased * original.length);
-        let out = '';
-        for (let i = 0; i < original.length; i++) {
-          const ch = original[i];
-          if (i < revealUpTo || ch === '\n' || ch === ' ' || ch === '\t') {
-            out += ch;
+        const want = Math.floor(t * original.length);
+        if (want > lastWant) {
+          // Append the new slice as a text node BEFORE the caret so the
+          // caret stays at the trailing edge.
+          const slice = original.slice(lastWant, want);
+          codeEl.insertBefore(document.createTextNode(slice), caret);
+          // Grow the gutter by however many newlines just typed, so the
+          // line numbers stay in lock-step with the visible code.
+          const newlines = (slice.match(/\n/g) || []).length;
+          if (newlines) appendGutterLines(newlines);
+          lastWant = want;
+          if (stickToBottom) {
+            thread.scrollTop = thread.scrollHeight;
           } else {
-            out += scrambleChar();
+            // User scrolled away — re-check each tick in case they came back.
+            stickToBottom = isPinned();
           }
         }
-        codeEl.textContent = out;
-        thread.scrollTop = thread.scrollHeight;
         if (t < 1) requestAnimationFrame(tick);
         else settle();
       }
@@ -1039,7 +1090,85 @@
     });
   }
 
-  async function streamAssistantMessage(content, time, signal, msgId) {
+  // ---------- DP_META marker (Groq-produced wrapper) -------------------
+  // The server prepends `<!-- DP_META: {...} -->\n` to assistant messages
+  // when classify_prompt / explain_code returned a structured wrapper. The
+  // marker survives a page reload so we can rebuild the same UI.
+  const DP_META_RE = /^<!--\s*DP_META:\s*(\{[\s\S]*?\})\s*-->\r?\n?/;
+  function parseDPMeta(raw) {
+    const text = raw || '';
+    const m = DP_META_RE.exec(text);
+    if (!m) return { meta: null, body: text };
+    try {
+      return { meta: JSON.parse(m[1]), body: text.slice(m[0].length) };
+    } catch (_e) {
+      return { meta: null, body: text };
+    }
+  }
+
+  function makeIntroNode(text) {
+    if (!text) return null;
+    const el = document.createElement('div');
+    el.className = 'msg-intro';
+    el.textContent = text;
+    return el;
+  }
+
+  function makeCardNode(kind, label, text) {
+    if (!text) return null;
+    const el = document.createElement('div');
+    el.className = `msg-card msg-${kind}`;
+    el.innerHTML =
+      `<span class="msg-card-tag mono">// ${label}</span>` +
+      `<div class="msg-card-body"></div>`;
+    el.querySelector('.msg-card-body').textContent = text;
+    return el;
+  }
+
+  function makeSuggestionChips(items) {
+    if (!items || !items.length) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-suggestions';
+    wrap.innerHTML = `<span class="msg-suggestions-label mono">// TRY ONE OF THESE</span>`;
+    const list = document.createElement('div');
+    list.className = 'msg-suggestions-list';
+    items.forEach(s => {
+      if (typeof s !== 'string' || !s.trim()) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'suggestion-chip';
+      btn.dataset.suggestion = s.trim();
+      btn.textContent = s.trim();
+      list.appendChild(btn);
+    });
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function renderAssistantBody(body, meta, cleaned) {
+    if (meta && meta.kind === 'chat') {
+      const txt = document.createElement('div');
+      txt.className = 'msg-text msg-chat-reply';
+      txt.textContent = cleaned;
+      body.appendChild(txt);
+      const chips = makeSuggestionChips(meta.suggestions);
+      if (chips) body.appendChild(chips);
+      return;
+    }
+    if (meta && meta.kind === 'code') {
+      const intro = makeIntroNode(meta.intro);
+      if (intro) body.appendChild(intro);
+      body.appendChild(renderContent(cleaned, { mitre: true }));
+      const sum = makeCardNode('summary', 'WHAT IT DOES', meta.summary);
+      if (sum) body.appendChild(sum);
+      const use = makeCardNode('usage', 'HOW TO USE', meta.usage);
+      if (use) body.appendChild(use);
+      return;
+    }
+    body.appendChild(renderContent(cleaned, { mitre: true }));
+  }
+
+  async function streamAssistantMessage(content, time, signal, msgId, opts) {
     const { node, body } = makeMessageNode('assistant', time, msgId);
     thread.appendChild(node);
     const empty = thread.querySelector('.empty-state');
@@ -1048,6 +1177,27 @@
 
     // Churn the SHA fingerprint while streaming
     const churn = startFpChurn(node);
+
+    opts = opts || {};
+    const kind = opts.kind || 'code';
+
+    if (kind === 'chat') {
+      await streamText(body, content, { signal });
+      const chips = makeSuggestionChips(opts.suggestions);
+      if (chips) {
+        body.appendChild(chips);
+        thread.scrollTop = thread.scrollHeight;
+      }
+      if (churn) clearInterval(churn);
+      settleFingerprint(node, content);
+      if (signal && signal.aborted) node.classList.add('is-cancelled');
+      return node;
+    }
+
+    if (opts.intro) {
+      const intro = makeIntroNode(opts.intro);
+      if (intro) body.appendChild(intro);
+    }
 
     const parts = parseParts(content);
     const tags  = mitreTagsFor(content);
@@ -1065,6 +1215,14 @@
         }
         await decryptCode(body, part.lang, part.body, { signal });
       }
+    }
+
+    if (!(signal && signal.aborted)) {
+      const sum = makeCardNode('summary', 'WHAT IT DOES', opts.summary);
+      if (sum) body.appendChild(sum);
+      const use = makeCardNode('usage', 'HOW TO USE', opts.usage);
+      if (use) body.appendChild(use);
+      if (sum || use) thread.scrollTop = thread.scrollHeight;
     }
 
     if (churn) clearInterval(churn);
@@ -1086,10 +1244,13 @@
     const raw = body.textContent;
     const isAssistant = msgEl.dataset.role === 'assistant';
     body.innerHTML = '';
-    body.appendChild(renderContent(raw, { mitre: isAssistant }));
     if (isAssistant) {
-      settleFingerprint(msgEl, raw);
+      const { meta, body: cleaned } = parseDPMeta(raw);
+      renderAssistantBody(body, meta, cleaned);
+      settleFingerprint(msgEl, cleaned);
       addMsgActions(msgEl);
+    } else {
+      body.appendChild(renderContent(raw, { mitre: false }));
     }
   });
 
@@ -1192,6 +1353,14 @@
         input.value = ex.dataset.ex;
         input.focus();
         autoGrow();
+        return;
+      }
+      const chip = e.target.closest('.suggestion-chip');
+      if (chip && chip.dataset.suggestion) {
+        input.value = chip.dataset.suggestion;
+        input.focus();
+        autoGrow();
+        return;
       }
       return;
     }
@@ -1506,11 +1675,19 @@
       activeController = null;
       activeStream = { aborted: false };
       try {
+        const am = data.assistant_message || {};
         await streamAssistantMessage(
-          data.assistant_message.content,
-          formatTime(new Date(data.assistant_message.created_at)),
+          am.content,
+          formatTime(new Date(am.created_at)),
           activeStream,
-          data.assistant_message.id
+          am.id,
+          {
+            kind:        am.kind || 'code',
+            intro:       am.intro || '',
+            summary:     am.summary || '',
+            usage:       am.usage || '',
+            suggestions: am.suggestions || [],
+          },
         );
       } finally {
         activeStream = null;

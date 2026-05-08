@@ -213,6 +213,90 @@ def _apply_subscription_to_profile(profile, subscription_obj, *, tier_hint=None)
     ])
 
 
+def resync_user_subscription(user) -> bool:
+    """List the user's Stripe subscriptions and apply the active one (if any)
+    to their profile. Used to recover from missed-webhook situations on
+    local dev. Cheap (one API call), idempotent."""
+    s = _stripe()
+    if s is None:
+        return False
+    profile = getattr(user, "profile", None)
+    if profile is None or not profile.stripe_customer_id:
+        return False
+    try:
+        subs = s.Subscription.list(
+            customer=profile.stripe_customer_id,
+            status="all",
+            limit=10,
+        )
+    except Exception:
+        log.exception("Stripe sub list failed for customer %s", profile.stripe_customer_id)
+        return False
+    items = (subs.get("data") if isinstance(subs, dict) else getattr(subs, "data", None)) or []
+    if not items:
+        return False
+    # Prefer active/trialing/past_due; fall back to whatever's most recent.
+    PRIORITY = {"active": 0, "trialing": 1, "past_due": 2, "incomplete": 3}
+    items_sorted = sorted(
+        items,
+        key=lambda it: (
+            PRIORITY.get(it.get("status") or "", 99),
+            -int(it.get("created") or 0),
+        ),
+    )
+    chosen = items_sorted[0]
+    _apply_subscription_to_profile(profile, chosen)
+    return True
+
+
+def activate_from_session(user, session_id: str) -> bool:
+    """Pull a Checkout Session from Stripe and apply its subscription state
+    to `user`'s profile. Used by the success-page landing handler so a
+    subscription becomes active immediately even when the webhook hasn't
+    been delivered yet (typical on local dev without `stripe listen`).
+
+    Idempotent: re-applying the same state is safe. Returns True on success.
+    """
+    s = _stripe()
+    if s is None or not session_id:
+        return False
+    try:
+        session = s.checkout.Session.retrieve(session_id)
+    except Exception:
+        log.exception("Stripe session retrieve failed: %s", session_id)
+        return False
+
+    # Guard: the session must belong to this user. We compare client_reference_id
+    # (set at create_checkout_session) against the user's pk to prevent a logged-in
+    # attacker from activating someone else's session by guessing IDs.
+    ref = str(session.get("client_reference_id") or "")
+    if ref and ref != str(user.pk):
+        log.warning("Session %s ref=%s but user=%s — refusing", session_id, ref, user.pk)
+        return False
+
+    # If the customer id is set on the session but missing on our profile (shouldn't
+    # happen, but harmless to backfill), copy it over so portal links work.
+    customer_id = session.get("customer")
+    profile = user.profile
+    if customer_id and not profile.stripe_customer_id:
+        profile.stripe_customer_id = customer_id
+        profile.save(update_fields=["stripe_customer_id"])
+
+    subscription_id = session.get("subscription")
+    if not subscription_id:
+        # Either pending payment or a one-shot session — nothing to apply.
+        return False
+    try:
+        sub = s.Subscription.retrieve(subscription_id)
+    except Exception:
+        log.exception("Stripe subscription retrieve failed: %s", subscription_id)
+        return False
+
+    tier_hint = (session.get("metadata") or {}).get("tier_slug")
+    _apply_subscription_to_profile(profile, sub, tier_hint=tier_hint)
+    return True
+
+
 def handle_event(event) -> bool:
     """Apply a verified Stripe event to our DB. Returns True if handled."""
     s = _stripe()

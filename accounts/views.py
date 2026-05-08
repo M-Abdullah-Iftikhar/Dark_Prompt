@@ -163,6 +163,18 @@ def settings_view(request):
                 return redirect("accounts:settings")
 
     profile = getattr(request.user, "profile", None)
+    # If the user has a Stripe customer record but our DB still thinks they're
+    # on the free tier, the webhook didn't reach us (common on local dev).
+    # One Stripe API call fixes it; safe to retry every page load until
+    # the next Stripe event lands.
+    if (
+        profile
+        and profile.stripe_customer_id
+        and (profile.subscription_tier or "sniffer") == "sniffer"
+        and billing.is_configured()
+    ):
+        if billing.resync_user_subscription(request.user):
+            profile.refresh_from_db()
     tier_slug = (profile.subscription_tier if profile else "sniffer") or "sniffer"
     tier_info = tier_lib.get_tier(tier_slug)
 
@@ -346,11 +358,17 @@ def subscribe_view(request, tier):
 def subscribe_success_view(request):
     """Landing page after a successful Stripe Checkout.
 
-    The webhook is the authoritative source — by the time the user lands here
-    the subscription state may already be active, OR it may be a few seconds
-    behind. We render either way; the dashboard will reflect reality."""
+    The webhook is the authoritative source for production — but on local
+    dev (where Stripe can't reach the webhook URL) it may never fire. To
+    keep the upgrade flow working in both environments we ALSO activate
+    the subscription here using the `session_id` Stripe appends to the URL.
+    `activate_from_session()` is idempotent, so re-applying state the
+    webhook has already written is a no-op."""
     tier = (request.GET.get("tier") or "").lower()
     info = tier_lib.TIER_LIMITS.get(tier)
+    session_id = (request.GET.get("session_id") or "").strip()
+    if session_id:
+        billing.activate_from_session(request.user, session_id)
     return render(request, "accounts/subscribe_success.html", {
         "tier": tier,
         "info": info,

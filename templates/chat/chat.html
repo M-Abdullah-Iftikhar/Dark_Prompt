@@ -95,14 +95,12 @@
       <div class="chat-head-title">
         <span class="mono section-tag">SESSION</span>
         <h1 id="chat-title" {% if active_conversation %}data-id="{{ active_conversation.id }}" tabindex="0"{% endif %}>{{ active_conversation.title|default:"New chat" }}</h1>
-        {% if language_c_available %}
-          <div class="lang-toggle" id="lang-toggle"
-               role="group" aria-label="Code generation language"
-               title="Generation language for this chat">
-            <button type="button" class="lang-toggle-btn" data-lang="asm" aria-pressed="false">ASM</button>
-            <button type="button" class="lang-toggle-btn" data-lang="c"   aria-pressed="false">C</button>
-          </div>
-        {% endif %}
+        <div class="lang-toggle" id="lang-toggle"
+             role="group" aria-label="Code generation language"
+             title="Generation language for this chat">
+          <button type="button" class="lang-toggle-btn" data-lang="asm" aria-pressed="false">ASM</button>
+          <button type="button" class="lang-toggle-btn" data-lang="c"   aria-pressed="false">C</button>
+        </div>
         {% if active_conversation %}
           <span class="chat-head-actions">
             <button type="button" id="chat-rename-btn" class="chat-head-iconbtn" title="Rename" aria-label="Rename conversation">
