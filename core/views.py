@@ -14,6 +14,14 @@ def about(request):
     return render(request, "core/about.html")
 
 
+def contact(request):
+    return render(request, "core/contact.html")
+
+
+def security(request):
+    return render(request, "core/security.html")
+
+
 CHANGELOG_RELEASES = [
     {
         "version": "0.5.0",
@@ -95,6 +103,8 @@ PUBLIC_SITEMAP_ROUTES = [
     # (url_name, changefreq, priority)
     ("core:landing",        "monthly", "1.0"),
     ("core:about",          "monthly", "0.8"),
+    ("core:contact",        "monthly", "0.6"),
+    ("core:security",       "monthly", "0.5"),
     ("core:changelog",      "weekly",  "0.6"),
     ("core:status",         "always",  "0.5"),
     ("core:terms",          "yearly",  "0.3"),

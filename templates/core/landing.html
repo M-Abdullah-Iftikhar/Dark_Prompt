@@ -396,6 +396,47 @@
   </div>
 </section>
 
+<section class="about-band" data-reveal id="about">
+  <header class="section-head" data-reveal>
+    <span class="mono section-tag">// THESIS</span>
+    <h2>Defenders read the same code attackers write.</h2>
+    <p class="muted">
+      Static malware samples age fast. Live AV / EDR coverage depends on a
+      constant stream of <em>fresh</em> variants — the same families seen in
+      the wild, expressed differently enough to expose gaps in signatures,
+      heuristics, and behavioural rules. Generating those by hand is slow
+      and inconsistent. Dark Prompt is a local-first frontend for an offline
+      LLM that produces them on demand, scoped by language, technique, and
+      target OS.
+    </p>
+  </header>
+
+  <div class="about-band-grid">
+    <article class="about-band-cell" data-reveal>
+      <span class="about-band-key mono">// FOR</span>
+      <h3>Defensive researchers</h3>
+      <p>AV / EDR detection engineers, authorised red teams, CTF players,
+         academic security courses.</p>
+    </article>
+    <article class="about-band-cell" data-reveal data-reveal-delay="80">
+      <span class="about-band-key mono">// AGAINST</span>
+      <h3>Production deployment</h3>
+      <p>Targeting third-party infrastructure without authorisation, mass
+         distribution, anything outlawed in your jurisdiction.</p>
+    </article>
+    <article class="about-band-cell" data-reveal data-reveal-delay="160">
+      <span class="about-band-key mono">// LOCAL</span>
+      <h3>Nothing leaves the box</h3>
+      <p>Model + artefacts stay on your machine. Conversations live in your
+         own database. No third-party telemetry, no cloud inference.</p>
+    </article>
+  </div>
+
+  <div class="about-band-foot" data-reveal data-reveal-delay="220">
+    <a href="{% url 'core:about' %}" class="btn btn-ghost">Read the full manifesto →</a>
+  </div>
+</section>
+
 <section class="features">
   <header class="section-head" data-reveal>
     <span class="mono section-tag">CAPABILITIES</span>
@@ -579,6 +620,135 @@
   </p>
 </section>
 
+<section class="faq-band" data-reveal id="faq">
+  <header class="section-head" data-reveal>
+    <span class="mono section-tag">// FAQ</span>
+    <h2>Frequently asked.</h2>
+    <p class="muted">If something here doesn't answer your question, the
+       <a href="{% url 'core:contact' %}">contact page</a> has more detail.</p>
+  </header>
+
+  <div class="faq-list">
+    <details class="faq-item" data-reveal>
+      <summary>
+        <span class="faq-q">Is this legal?</span>
+        <span class="faq-chev" aria-hidden="true">›</span>
+      </summary>
+      <div class="faq-a">
+        <p>Generating source code that demonstrates malware techniques is a
+           well-established part of defensive security research — it's how
+           AV vendors, detection engineers, and academic courses build
+           coverage. What's <em>not</em> legal is using that code to attack
+           systems you don't own or have written permission to test. Dark
+           Prompt is gated behind an
+           <a href="{% url 'core:acceptable_use' %}">Acceptable Use Policy</a>
+           that every user signs at registration, and higher tiers add a
+           per-subscription ethical-use form.</p>
+      </div>
+    </details>
+
+    <details class="faq-item" data-reveal data-reveal-delay="60">
+      <summary>
+        <span class="faq-q">Where does my data go?</span>
+        <span class="faq-chev" aria-hidden="true">›</span>
+      </summary>
+      <div class="faq-a">
+        <p>Conversations live in this app's database — they're not sent to
+           OpenAI, Anthropic, or any third-party inference provider. The
+           generation model itself runs on infrastructure you control (a
+           Kaggle notebook, an HF Space, or your own GPU box) and is reached
+           via a Gradio HTTPS tunnel. The only third-party calls Dark Prompt
+           makes are: Brevo for transactional email, and Groq for
+           generating short chat titles. Both are off by default if their
+           API keys are unset.</p>
+      </div>
+    </details>
+
+    <details class="faq-item" data-reveal data-reveal-delay="120">
+      <summary>
+        <span class="faq-q">What models does it run?</span>
+        <span class="faq-chev" aria-hidden="true">›</span>
+      </summary>
+      <div class="faq-a">
+        <p>Two backends today: an Assembly generator (TASM / MASM / NASM
+           dialects, x86 + x86_64 + 16-bit DOS) and a C generator (targeting
+           <code>x86_64-w64-mingw32-gcc</code> for Windows PE output). Each
+           conversation is locked to one language at first send. Add more
+           backends by pointing extra <code>LLM_API_URL_*</code> env vars at
+           your own Gradio spaces — see the
+           <a href="{% url 'core:status' %}">status page</a> for the live
+           endpoints.</p>
+      </div>
+    </details>
+
+    <details class="faq-item" data-reveal data-reveal-delay="180">
+      <summary>
+        <span class="faq-q">Can I plug in my own model?</span>
+        <span class="faq-chev" aria-hidden="true">›</span>
+      </summary>
+      <div class="faq-a">
+        <p>Yes. The chat backend speaks the standard
+           <code>gradio_client</code> protocol with a
+           <code>(instruction, max_tokens, temperature)</code> signature.
+           Any HuggingFace Space, Kaggle notebook, or local Gradio app
+           exposing that interface drops in. Set
+           <code>LLM_API_URL</code> in your environment, restart, and the
+           Console talks to it.</p>
+      </div>
+    </details>
+
+    <details class="faq-item" data-reveal data-reveal-delay="240">
+      <summary>
+        <span class="faq-q">Does it actually compile or run the code?</span>
+        <span class="faq-chev" aria-hidden="true">›</span>
+      </summary>
+      <div class="faq-a">
+        <p>Compile, optionally — yes, via local toolchains (<code>nasm</code>,
+           <code>gcc</code>, <code>jwasm</code>, <code>pwsh</code>, etc.) when
+           they're on the host's <code>$PATH</code>. The Console's
+           <em>Analyse</em> button does static analysis (syntax check + a
+           suspicious-API scan with MITRE tags); <em>Compile</em> turns the
+           source into a binary in a per-build temp directory you can
+           download. Execution / detonation is intentionally <strong>not</strong>
+           shipped in the box — that's the job of a real sandbox like
+           Cuckoo or a third-party API like Hybrid Analysis.</p>
+      </div>
+    </details>
+
+    <details class="faq-item" data-reveal data-reveal-delay="300">
+      <summary>
+        <span class="faq-q">Why subscription tiers if it's a research tool?</span>
+        <span class="faq-chev" aria-hidden="true">›</span>
+      </summary>
+      <div class="faq-a">
+        <p>The tiers are an ethical-use gate, not a paywall. Sniffer is free
+           and gives you the full Console; Exploit and Zero Day add a
+           per-subscription ethical-use form (organisation, role, signed
+           acknowledgements) that scopes the tool to a specific operator
+           rather than a single email address. Higher token limits come
+           along with that.</p>
+      </div>
+    </details>
+
+    <details class="faq-item" data-reveal data-reveal-delay="360">
+      <summary>
+        <span class="faq-q">What's it built with?</span>
+        <span class="faq-chev" aria-hidden="true">›</span>
+      </summary>
+      <div class="faq-a">
+        <p>Django 5.x on Python 3.12, Postgres for production state, SQLite
+           locally. Static files via WhiteNoise. Email through Brevo's HTTPS
+           API. Auth uses Django's built-ins plus a custom email-or-username
+           backend, TOTP-based 2FA (RFC 6238, no third-party 2FA library),
+           cache-backed rate limiting, and personal API keys for /api/chat/.
+           Frontend is vanilla JS — no build step, no framework. Deployed on
+           Render free tier, autodeploy from <code>main</code> via GitHub
+           Actions.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
 <section class="cta-band" data-reveal>
   <div class="cta-inner">
     <h2>Ready to generate?</h2>
@@ -597,6 +767,11 @@
 
 {% block site_footer %}
 <footer class="site-footer" role="contentinfo">
+  {# Decorative top scanline + corner brackets #}
+  <span class="footer-scanline" aria-hidden="true"></span>
+  <span class="footer-corner footer-corner-tl" aria-hidden="true"></span>
+  <span class="footer-corner footer-corner-tr" aria-hidden="true"></span>
+
   <div class="footer-inner">
     <div class="footer-brand">
       <a class="brand brand-large" href="{% url 'core:landing' %}">
@@ -607,25 +782,29 @@
         LLM-driven malware generation for proactive AV research. Local model.
         Local artefacts. Nothing leaves your network.
       </p>
+
+      <a class="footer-status" href="{% url 'core:status' %}" aria-label="System status">
+        <span class="footer-status-dot" aria-hidden="true"></span>
+        <span class="footer-status-key">SYS//</span>
+        <span class="footer-status-val">OPERATIONAL</span>
+        <span class="footer-status-arrow" aria-hidden="true">›</span>
+      </a>
+
       <div class="footer-social" aria-label="External links">
-        <a href="#" aria-label="GitHub" rel="nofollow">
+        <a href="https://github.com/M-Abdullah-Iftikhar/Dark_Prompt" aria-label="GitHub repository" data-tip="GitHub" rel="noopener" target="_blank">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.18a10.94 10.94 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/>
           </svg>
         </a>
-        <a href="#" aria-label="X" rel="nofollow">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M18.244 2H21.5l-7.36 8.41L23 22h-6.78l-5.31-6.95L4.8 22H1.54l7.88-9-7.42-11h6.94l4.8 6.34L18.244 2Zm-2.38 18h1.84L7.24 4H5.27l10.6 16Z"/>
-          </svg>
-        </a>
-        <a href="#" aria-label="LinkedIn" rel="nofollow">
+        <a href="https://www.linkedin.com/in/abdullah2235/" aria-label="LinkedIn" data-tip="LinkedIn" rel="noopener" target="_blank">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5ZM.22 8h4.56v14H.22V8Zm7.39 0h4.37v1.92h.06c.61-1.16 2.1-2.38 4.32-2.38 4.62 0 5.47 3.04 5.47 6.99V22h-4.56v-6.2c0-1.48-.03-3.39-2.07-3.39-2.07 0-2.39 1.62-2.39 3.29V22H7.61V8Z"/>
           </svg>
         </a>
-        <a href="#" aria-label="RSS" rel="nofollow">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M5 3a16 16 0 0 1 16 16h-3A13 13 0 0 0 5 6V3Zm0 6a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V9Zm0 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/>
+        <a href="mailto:muhammadabdullahmughal740@gmail.com" aria-label="Email" data-tip="Email">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2"/>
+            <path d="M3 7l9 6 9-6"/>
           </svg>
         </a>
       </div>
@@ -636,48 +815,48 @@
         <h4>Product</h4>
         <ul>
           <li><a href="{% url 'chat:chat' %}">Console</a></li>
-          <li><a href="#">API reference</a></li>
-          <li><a href="#">Models</a></li>
-          <li><a href="#">Release notes</a></li>
-          <li><a href="#">Changelog</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'accounts:api_keys' %}">API keys</a></li>
+          {% endif %}
+          <li><a href="{% url 'core:status' %}">Status</a></li>
+          <li><a href="{% url 'core:changelog' %}">Changelog</a></li>
+          <li><a href="{% url 'core:landing' %}#pricing">Pricing</a></li>
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Research</h4>
+        <h4>Project</h4>
         <ul>
-          <li><a href="#">Threat blog</a></li>
-          <li><a href="#">Whitepapers</a></li>
-          <li><a href="#">Disclosures</a></li>
-          <li><a href="#">Lab notes</a></li>
-          <li><a href="#">CVE feed</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Company</h4>
-        <ul>
-          <li><a href="#">About</a></li>
-          <li><a href="#">Contact</a></li>
-          <li><a href="#">Careers</a></li>
-          <li><a href="#">Press kit</a></li>
+          <li><a href="{% url 'core:about' %}">About</a></li>
+          <li><a href="{% url 'core:landing' %}#faq">FAQ</a></li>
+          <li><a href="{% url 'core:contact' %}">Contact</a></li>
+          <li><a href="https://github.com/M-Abdullah-Iftikhar/Dark_Prompt" rel="noopener" target="_blank">GitHub <span class="footer-link-out" aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.linkedin.com/in/abdullah2235/" rel="noopener" target="_blank">LinkedIn <span class="footer-link-out" aria-hidden="true">↗</span></a></li>
         </ul>
       </div>
       <div class="footer-col">
         <h4>Legal</h4>
         <ul>
-          <li><a href="#">Terms</a></li>
-          <li><a href="#">Privacy</a></li>
-          <li><a href="#">Security</a></li>
-          <li><a href="#">Acceptable use</a></li>
-          <li><a href="#">Responsible disclosure</a></li>
+          <li><a href="{% url 'core:terms' %}">Terms</a></li>
+          <li><a href="{% url 'core:privacy' %}">Privacy</a></li>
+          <li><a href="{% url 'core:acceptable_use' %}">Acceptable use</a></li>
+          <li><a href="{% url 'core:security' %}">Security</a></li>
         </ul>
       </div>
     </nav>
   </div>
 
   <div class="footer-bar">
-    <span class="mono">© 2026 DARK//PROMPT RESEARCH</span>
-    <span class="mono">v0.1 · INTERNAL BUILD</span>
-    <span class="mono">RESEARCH USE ONLY · NOT FOR PRODUCTION DEPLOYMENT</span>
+    <span class="footer-bar-left mono">
+      <span class="footer-bar-glyph">©</span> 2026 DARK//PROMPT RESEARCH
+    </span>
+    <span class="footer-bar-mid mono">
+      <span class="footer-bar-pill">v0.5 · INTERNAL BUILD</span>
+      <span class="footer-bar-pill footer-bar-pill-warn">RESEARCH USE ONLY</span>
+    </span>
+    <span class="footer-bar-right mono">
+      Built by
+      <a href="https://www.linkedin.com/in/abdullah2235/" rel="noopener" target="_blank">Abdullah Iftikhar</a>
+    </span>
   </div>
 </footer>
 {% endblock %}
