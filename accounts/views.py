@@ -1,6 +1,10 @@
 """Authentication views."""
+import logging
+
 from django.conf import settings
 from django.contrib import messages
+
+log = logging.getLogger("accounts.email")
 from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
@@ -77,7 +81,7 @@ def signup_view(request):
                 try:
                     send_verification_email(request, authed)
                 except Exception:
-                    pass
+                    log.exception("send_verification_email failed during signup for user_id=%s", authed.pk)
             return redirect("accounts:verify_pending")
     else:
         form = SignupForm()
@@ -197,8 +201,7 @@ def forgot_password_view(request):
                 try:
                     _send_password_reset_email(request, user)
                 except Exception:
-                    # Swallow email errors so we don't leak info; surface in logs.
-                    pass
+                    log.exception("password reset email failed for user_id=%s", user.pk)
             sent = True
     else:
         form = ForgotPasswordForm()
@@ -284,6 +287,7 @@ def verify_resend_view(request):
     try:
         sent = send_verification_email(request, request.user)
     except Exception:
+        log.exception("verify resend failed for user_id=%s", request.user.pk)
         sent = False
     if sent:
         messages.success(request, "Verification email re-sent. Check your inbox.")

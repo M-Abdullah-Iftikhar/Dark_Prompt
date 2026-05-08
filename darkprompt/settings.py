@@ -17,7 +17,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
 DEV_SECRET_KEY = "dev-only-secret-change-me-in-production-0123456789abcdef"  # noqa: S105
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", DEV_SECRET_KEY)
+# Treat unset OR empty string as "use the dev fallback" — `.env` files commonly
+# carry `DJANGO_SECRET_KEY=` blank entries from .env.example.
+SECRET_KEY = (os.environ.get("DJANGO_SECRET_KEY", "") or "").strip() or DEV_SECRET_KEY
 
 ALLOWED_HOSTS = (
     ["*"]
@@ -119,6 +121,29 @@ if _database_url:
         # Local dev without the production extras installed — fall through
         # to the SQLite default; printing a warning would spam tests.
         pass
+
+# Logging — write our app's loggers to stderr so Render's log stream picks
+# them up. Critical for surfacing SMTP errors that the views otherwise swallow.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "stamped": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "stderr": {
+            "class": "logging.StreamHandler",
+            "formatter": "stamped",
+        },
+    },
+    "loggers": {
+        "accounts": {"handlers": ["stderr"], "level": "INFO", "propagate": False},
+        "chat":     {"handlers": ["stderr"], "level": "INFO", "propagate": False},
+    },
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
