@@ -7893,6 +7893,15 @@ a:focus-visible{
   font-size: 12.5px;
   line-height: 1.55;
 }
+.settings-pref-status{
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--dh-bone-mute, #8A859C);
+}
+.settings-pref-status[data-state="granted"]{ color: #6BE07A; }
+.settings-pref-status[data-state="denied"]{  color: #FF1A6B; }
+.settings-pref-status[data-state="default"]{ color: #FEC5D3; }
 .settings-toggle{
   display: inline-flex;
   align-items: center;

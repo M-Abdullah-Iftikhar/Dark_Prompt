@@ -7,14 +7,12 @@
 {% block extra_scripts %}
 <script>
 (function () {
-  const cb = document.getElementById('audio-cues-toggle');
-  if (!cb || !window.dpAudio) {
-    // Fallback if dpAudio hasn't loaded yet — re-bind on DOMContentLoaded.
-    document.addEventListener('DOMContentLoaded', bind);
-    return;
+  function syncLabel(cb) {
+    const stateEl = cb.closest('label')?.querySelector('[data-state-on]');
+    if (!stateEl) return;
+    stateEl.textContent = cb.checked ? stateEl.dataset.stateOn : stateEl.dataset.stateOff;
   }
-  bind();
-  function bind() {
+  function bindAudio() {
     const cb = document.getElementById('audio-cues-toggle');
     if (!cb || !window.dpAudio) return;
     cb.checked = window.dpAudio.isEnabled();
@@ -25,12 +23,48 @@
       if (cb.checked) window.dpAudio.dispatch();
     });
   }
-  function syncLabel(cb) {
-    const stateEl = cb.closest('label')?.querySelector('[data-state-on]');
-    if (!stateEl) return;
-    stateEl.textContent = cb.checked
-      ? stateEl.dataset.stateOn
-      : stateEl.dataset.stateOff;
+  function paintNotifyStatus() {
+    const status = document.getElementById('notify-status');
+    if (!status || !window.dpNotify) return;
+    if (!window.dpNotify.supported) {
+      status.textContent = '// browser does not support notifications';
+      status.dataset.state = 'unsupported';
+      return;
+    }
+    const perm = window.dpNotify.permission();
+    if (perm === 'granted') {
+      status.textContent = '// permission: granted';
+      status.dataset.state = 'granted';
+    } else if (perm === 'denied') {
+      status.textContent = '// permission: blocked by browser. Re-enable in site settings.';
+      status.dataset.state = 'denied';
+    } else {
+      status.textContent = '// permission: not yet requested. Will prompt on next dispatch.';
+      status.dataset.state = 'default';
+    }
+  }
+  async function bindNotify() {
+    const cb = document.getElementById('notify-toggle');
+    if (!cb || !window.dpNotify) return;
+    cb.checked = window.dpNotify.isEnabled();
+    syncLabel(cb);
+    paintNotifyStatus();
+    cb.addEventListener('change', async () => {
+      window.dpNotify.setEnabled(cb.checked);
+      syncLabel(cb);
+      // When the user opts IN here, request permission immediately so they
+      // don't have to wait for their first chat dispatch.
+      if (cb.checked && window.dpNotify.permission() === 'default') {
+        await window.dpNotify.ensurePermission();
+      }
+      paintNotifyStatus();
+    });
+  }
+  function bindAll() { bindAudio(); bindNotify(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindAll);
+  } else {
+    bindAll();
   }
 })();
 </script>
@@ -110,6 +144,24 @@
         <input type="checkbox" id="audio-cues-toggle" data-pref="audio">
         <span class="settings-toggle-slider" aria-hidden="true"></span>
         <span class="settings-toggle-state mono" data-state-on="ON" data-state-off="OFF">OFF</span>
+      </label>
+    </div>
+    <div class="settings-pref-row">
+      <div>
+        <div class="settings-pref-label">Desktop notifications</div>
+        <div class="settings-pref-help muted">
+          Pings you when an LLM response is ready (or generation failed) while
+          the Dark Prompt window is minimised or in another tab. <strong>On by
+          default</strong>. Browser permission is requested the first time you
+          dispatch a prompt — you can also revoke it via your browser settings.
+          State is stored in this browser only.
+        </div>
+        <div class="settings-pref-status mono" id="notify-status" aria-live="polite"></div>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="notify-toggle" data-pref="notify">
+        <span class="settings-toggle-slider" aria-hidden="true"></span>
+        <span class="settings-toggle-state mono" data-state-on="ON" data-state-off="OFF">ON</span>
       </label>
     </div>
 

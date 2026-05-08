@@ -1423,6 +1423,12 @@
     setSending(true);
     window.dpAudio?.dispatch();
     showThinking();
+    // Lazy permission request — only the first time the user actually
+    // dispatches something. The browser shows its native prompt once;
+    // after that we never ask again.
+    if (window.dpNotify && window.dpNotify.isEnabled() && window.dpNotify.permission() === 'default') {
+      window.dpNotify.ensurePermission();
+    }
     activeController = new AbortController();
 
     try {
@@ -1450,13 +1456,19 @@
           { code, detail: data.detail || `HTTP ${res.status}` },
           prompt
         );
-        markLastUserFailed(prompt, ({
+        const faultLabel = ({
           llm_unreachable:  'LLM endpoint unreachable',
           llm_timeout:      'Request timed out',
           llm_error:        'Backend error',
           llm_bad_response: 'Unexpected response',
-        }[code]) || 'Generation failed');
+        }[code]) || 'Generation failed';
+        markLastUserFailed(prompt, faultLabel);
         window.dpAudio?.fault();
+        window.dpNotify?.notify({
+          title: 'Dark Prompt — generation failed',
+          body:  faultLabel,
+          tag:   'dp-fault',
+        });
         status.textContent = 'Error';
         return;
       }
@@ -1474,6 +1486,22 @@
       addOrUpdateConvo(data.conversation);
       if (data.session_totals) updateTokenMeter(data.session_totals);
       window.dpAudio?.response();
+      // Desktop notification — only fires when the tab is actually hidden.
+      const convoTitle = (data.conversation.title || 'New chat').slice(0, 80);
+      const previewBody = (data.assistant_message.content || '')
+        .replace(/```[\s\S]*?```/g, '[code]')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 140);
+      window.dpNotify?.notify({
+        title: `Dark Prompt — response ready`,
+        body:  previewBody ? `${convoTitle} · ${previewBody}` : convoTitle,
+        tag:   `dp-response-${activeId}`,
+        onClick: () => {
+          // Bring the user back to this exact conversation.
+          if (activeId) window.location.href = `?c=${activeId}`;
+        },
+      });
       // request done — keep "stop" mode active during streaming
       activeController = null;
       activeStream = { aborted: false };
@@ -1501,6 +1529,11 @@
         showLlmDownBanner({ code: 'network', detail: err.message || String(err) }, prompt);
         markLastUserFailed(prompt, 'Network error');
         window.dpAudio?.fault();
+        window.dpNotify?.notify({
+          title: 'Dark Prompt — network error',
+          body:  err.message || 'Could not reach the server.',
+          tag:   'dp-fault',
+        });
         status.textContent = 'Network error';
       }
     }
