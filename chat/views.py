@@ -900,19 +900,44 @@ def api_regenerate(request, pk):
             temperature=temperature,
             language=convo.language,
         )
-    except llm_backend.LLMUnreachable as exc:
-        return JsonResponse({
-            "error": "llm_unreachable",
-            "detail": exc.detail or f"Could not reach LLM backend at {settings.LLM_API_URL}.",
-        }, status=502)
-    except llm_backend.LLMTimeout as exc:
-        return JsonResponse({"error": "llm_timeout", "detail": exc.detail or "LLM backend timed out."}, status=504)
-    except llm_backend.LLMBadResponse as exc:
-        return JsonResponse({"error": "llm_bad_response", "detail": exc.detail or "LLM returned non-JSON output."}, status=502)
-    except llm_backend.LLMError as exc:
-        return JsonResponse({"error": "llm_error", "detail": exc.detail}, status=502)
+    except (
+        llm_backend.LLMUnreachable,
+        llm_backend.LLMTimeout,
+        llm_backend.LLMBadResponse,
+        llm_backend.LLMError,
+    ) as exc:
+        fb = pick_fallback(prior_user.content, convo.language)
+        if fb is None:
+            error_map = {
+                llm_backend.LLMUnreachable:  ("llm_unreachable",  502, f"Could not reach LLM backend at {settings.LLM_API_URL}."),
+                llm_backend.LLMTimeout:      ("llm_timeout",      504, "LLM backend timed out."),
+                llm_backend.LLMBadResponse:  ("llm_bad_response", 502, "LLM returned non-JSON output."),
+                llm_backend.LLMError:        ("llm_error",        502, ""),
+            }
+            code, status_code, default_detail = error_map.get(type(exc), ("llm_error", 502, ""))
+            return JsonResponse({
+                "error":  code,
+                "detail": getattr(exc, "detail", "") or default_detail,
+            }, status=status_code)
+        fallback_source, generated = fb
+        log.info(
+            "LLM unreachable (%s) — served fallback %s for regenerate (lang=%s)",
+            type(exc).__name__, fallback_source, convo.language,
+        )
 
-    assistant_msg.content = generated
+    explanation = explain_code(prior_user.content, generated, lang=convo.language)
+    if explanation:
+        meta = {
+            "kind":    "code",
+            "intro":   explanation.get("intro", ""),
+            "summary": explanation.get("summary", ""),
+            "usage":   explanation.get("usage", ""),
+        }
+        stored_content = _wrap_with_meta(meta, generated)
+    else:
+        stored_content = generated
+
+    assistant_msg.content = stored_content
     assistant_msg.temperature = temperature
     assistant_msg.max_tokens = max_tokens
     assistant_msg.save(update_fields=["content", "temperature", "max_tokens"])
