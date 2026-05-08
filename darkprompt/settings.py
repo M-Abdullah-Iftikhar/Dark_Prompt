@@ -217,10 +217,11 @@ DEFAULT_FROM_EMAIL  = os.environ.get(
 )
 PASSWORD_RESET_TIMEOUT = 60 * 30  # 30 minutes
 
-# Resend (HTTPS-based email API — used when the platform blocks SMTP egress,
-# e.g. Render's free tier). Activate with:
-#   DJANGO_EMAIL_BACKEND=accounts.email_backends.ResendBackend
+# HTTPS email API keys (used when the platform blocks SMTP egress, e.g.
+# Render's free tier). Pick one provider, set its key, and point
+# DJANGO_EMAIL_BACKEND at the matching backend class.
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+BREVO_API_KEY  = os.environ.get("BREVO_API_KEY",  "")
 
 # Cost telemetry — synthetic dollar rate per 1k tokens for the local LLM.
 # Configurable via env so it can be tuned without a redeploy.
