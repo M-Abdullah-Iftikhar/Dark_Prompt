@@ -308,10 +308,26 @@ def _run(cmd: list[str], *, cwd: Path, timeout: int) -> subprocess.CompletedProc
 # analyse(code, lang)
 # ---------------------------------------------------------------------------
 
+def _infer_lang_from_code(code: str) -> str:
+    """Last-resort language guess from code content when the caller sends no tag."""
+    head = code[:2000]
+    if re.search(r"^\s*#\s*include\s*[<\"]", head, re.M):
+        return "cpp" if re.search(r"\b(std::|namespace\s+std|template\s*<)", code) else "c"
+    if re.search(r"^\s*(BITS\s+\d+|section\s+\.|global\s+\w|extern\s+\w)", head, re.M | re.I):
+        return "nasm"
+    if re.search(r"^\s*def\s+\w+\s*\(|^\s*(import|from)\s+\w+", head, re.M):
+        return "python"
+    return ""
+
+
 def analyse(code: str, lang: str) -> AnalysisResult:
     started = time.monotonic()
     _enforce_input_size(code)
     canonical = _canonical_lang(lang)
+
+    # If the frontend sent no language tag, try to guess from code content.
+    if not canonical:
+        canonical = _infer_lang_from_code(code)
 
     # Auto-disambiguate assembly: NASM vs MASM/TASM pick from source.
     if canonical == "nasm":

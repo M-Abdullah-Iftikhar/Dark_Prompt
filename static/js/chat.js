@@ -485,7 +485,7 @@
   }
 
   function detectLang(code) {
-    const head = code.slice(0, 400);
+    const head = code.slice(0, 1500); // wide enough to clear large header comments
     // C-mode preference: if the conversation is C and the source has any
     // C-shaped tokens, return 'c' before falling into assembly heuristics.
     if (chatLanguage() === 'c') {
