@@ -152,9 +152,15 @@ def sitemap_xml(request):
 
 
 def web_manifest(request):
-    """Serve the PWA manifest with the correct Content-Type."""
+    """Serve the PWA manifest with the correct Content-Type.
+
+    Resolves icon paths through `static()` so they pick up Whitenoise's
+    hashed manifest filenames in production. Hardcoded `/static/...` paths
+    would 404 because `CompressedManifestStaticFilesStorage` only serves
+    hashed variants."""
     import json
     from django.http import HttpResponse
+    from django.templatetags.static import static
     payload = {
         "name": "Dark Prompt",
         "short_name": "Dark//Prompt",
@@ -168,9 +174,9 @@ def web_manifest(request):
         "lang": "en-US",
         "categories": ["productivity", "developer", "security"],
         "icons": [
-            {"src": "/static/img/icon-192.png",          "sizes": "192x192", "type": "image/png", "purpose": "any"},
-            {"src": "/static/img/icon-512.png",          "sizes": "512x512", "type": "image/png", "purpose": "any"},
-            {"src": "/static/img/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+            {"src": static("img/icon-192.png"),          "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": static("img/icon-512.png"),          "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": static("img/icon-512-maskable.png"), "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
         ],
         "shortcuts": [
             {"name": "New chat", "short_name": "New chat", "url": "/chat/",
