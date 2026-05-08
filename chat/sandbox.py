@@ -33,9 +33,10 @@ from django.conf import settings
 # Limits
 # ---------------------------------------------------------------------------
 
-MAX_INPUT_BYTES   = 256 * 1024  # 256 KB
-COMPILE_TIMEOUT_S = 10
-ANALYSE_TIMEOUT_S = 5
+MAX_INPUT_BYTES      = 256 * 1024  # 256 KB
+COMPILE_TIMEOUT_S    = 30
+ANALYSE_TIMEOUT_S    = 5
+C_ANALYSE_TIMEOUT_S  = 25  # MinGW cross-compiler is slow on throttled hosts
 
 
 # ---------------------------------------------------------------------------
@@ -419,8 +420,11 @@ def _analyse_c(code: str, r: AnalysisResult) -> None:
         f.write(code); src = f.name
     try:
         proc = subprocess.run(
-            [cc, "-fsyntax-only", "-Wall", src],
-            capture_output=True, text=True, timeout=ANALYSE_TIMEOUT_S, check=False,
+            # -Wall omitted: we only need syntax validity, not quality warnings.
+            # -fmax-errors=5: stop early so the compiler doesn't scan the whole
+            # file looking for more errors on a throttled host.
+            [cc, "-fsyntax-only", "-fmax-errors=5", src],
+            capture_output=True, text=True, timeout=C_ANALYSE_TIMEOUT_S, check=False,
         )
     finally:
         try: os.unlink(src)
