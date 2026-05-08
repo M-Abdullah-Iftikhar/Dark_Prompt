@@ -298,7 +298,9 @@
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get('replay_tour') === '1') {
+        // Clear every known version so any past dismissal is undone.
         localStorage.removeItem('dp.onboarding.v1.done');
+        localStorage.removeItem('dp.onboarding.v2.done');
         params.delete('replay_tour');
         const search = params.toString();
         const clean = window.location.pathname + (search ? '?' + search : '');

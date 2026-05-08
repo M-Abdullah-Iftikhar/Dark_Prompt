@@ -5,19 +5,33 @@
 (function () {
   if (!document.querySelector('.chat-shell')) return;
 
-  const KEY = 'dp.onboarding.v1.done';
+  // Bump the version suffix whenever STEPS changes meaningfully so existing
+  // users see the refreshed tour once.
+  const KEY = 'dp.onboarding.v2.done';
   const STEPS = [
     {
       sel:  '#new-chat-btn',
       side: 'right',
       title: 'Start a session',
-      body:  'Click here to spin up a fresh conversation. Each session is local, scoped, and exportable.',
+      body:  'Spin up a fresh conversation. Each session is scoped to one language (ASM or C) and stays exportable as Markdown / plain text / PDF.',
+    },
+    {
+      sel:  '#lang-toggle',
+      side: 'bottom',
+      title: 'Switch generation language',
+      body:  'ASM hits the assembly model, C hits the C model. Each chat is locked to one language at first send — switching mid-chat creates a new conversation. The choice persists for your next "+ New chat" too.',
+    },
+    {
+      sel:  '#sidebar-collapse-btn',
+      side: 'right',
+      title: 'Hide the sidebar',
+      body:  'Collapse the conversation list when you want maximum room for code. A small chevron appears on the left edge to bring it back. State persists across reloads.',
     },
     {
       sel:  '#convo-search',
       side: 'right',
       title: 'Search everything',
-      body:  'Type to filter titles instantly. Two or more characters runs a full-text search across every message body.',
+      body:  'Type to filter titles instantly. Two or more characters runs a full-text search across every message body in your history.',
     },
     {
       sel:  '#chat-input',
@@ -29,13 +43,19 @@
       sel:  '#token-meter',
       side: 'bottom',
       title: 'Token + cost meter',
-      body:  'Live count of prompt + completion tokens for this session, with an estimated cost. The bar pegs around 50k.',
+      body:  'Live count of prompt + completion tokens for this session, plus an estimated cost. The bar pegs around 50k.',
+    },
+    {
+      sel:  '#chat-export-btn',
+      side: 'bottom-left',
+      title: 'Export the conversation',
+      body:  'Save the whole chat as a styled PDF (in the Dark Prompt theme), Markdown, or plain text. Useful for write-ups, audit trails, or sharing a session.',
     },
     {
       sel:  '.dh-user-trigger',
       side: 'bottom-left',
       title: 'Account menu',
-      body:  'Settings, sessions, API keys, sign out — all behind your avatar. Press ? any time for the keyboard shortcuts cheat-sheet.',
+      body:  'Settings, sessions, API keys, activity log, sign out — all behind your avatar. Press ? any time for the keyboard shortcuts cheat-sheet.',
     },
   ];
 

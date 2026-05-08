@@ -168,9 +168,9 @@ def web_manifest(request):
         "lang": "en-US",
         "categories": ["productivity", "developer", "security"],
         "icons": [
-            {"src": "/static/img/favicon.svg", "sizes": "any",     "type": "image/svg+xml", "purpose": "any"},
-            {"src": "/static/img/logo.png",    "sizes": "192x192", "type": "image/png",     "purpose": "any"},
-            {"src": "/static/img/logo.png",    "sizes": "512x512", "type": "image/png",     "purpose": "any maskable"},
+            {"src": "/static/img/icon-192.png",          "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/static/img/icon-512.png",          "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/static/img/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
         ],
         "shortcuts": [
             {"name": "New chat", "short_name": "New chat", "url": "/chat/",
