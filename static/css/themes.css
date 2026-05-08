@@ -4573,7 +4573,19 @@ a:focus-visible{
   letter-spacing: 0.02em;
   color: var(--dh-bone);
   white-space: pre-wrap;
-  min-height: 156px;
+  /* Hard-pin the height so appending a new line never resizes the parent
+     panel (which would otherwise force the hero bg image to reflow). */
+  height: 196px;
+  max-height: 196px;
+  overflow: hidden;
+  /* Anchor the most recent line to the bottom; older lines clip off the top. */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* Soft fade at the top edge so the oldest visible line dissolves gracefully
+     instead of getting hard-cut by the box edge. */
+          mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 100%);
 }
 [data-theme="dark"] .dh-term-line{ display: block; }
 [data-theme="dark"] .dh-term-line.is-cmd{ color: var(--dh-bone); }

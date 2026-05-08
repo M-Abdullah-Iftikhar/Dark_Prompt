@@ -13,11 +13,35 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from accounts.activity import log_event
-from accounts.models import ActivityEvent, ApiKey
+from accounts.models import ActivityEvent, ApiKey, UserProfile
+from accounts import tiers as tier_lib
 
 from . import llm as llm_backend
 from .naming import infer_chat_title
 from .models import Conversation, Message
+
+
+def _user_tier_limits(user):
+    """Resolve the user's effective tier limits dict. Free SNIFFER as fallback."""
+    profile = getattr(user, "profile", None)
+    slug = (profile.subscription_tier if profile else "sniffer") or "sniffer"
+    return tier_lib.get_tier(slug), slug
+
+
+def _monthly_generation_count(user):
+    """Count this user's user-role messages in the rolling current month."""
+    from django.utils import timezone as _tz
+    now = _tz.now()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return (
+        Message.objects
+        .filter(
+            conversation__user=user,
+            role=Message.USER,
+            created_at__gte=month_start,
+        )
+        .count()
+    )
 
 
 def _resolve_api_key(request):
@@ -236,11 +260,46 @@ def api_chat(request):
         max_tokens = 2048
     max_tokens = max(16, min(8192, max_tokens))
 
+    # ----- Tier caps (enforced on every dispatch) ----------------------
+    tier, tier_slug = _user_tier_limits(request.user)
+    # 1. Token budget per request
+    tier_max = tier.get("max_tokens", 1024)
+    if max_tokens > tier_max:
+        max_tokens = tier_max  # silently clamp; UI surfaces the cap separately
+    # 2. Monthly generation cap
+    monthly_cap = tier.get("monthly_gens")
+    if monthly_cap is not None:
+        used = _monthly_generation_count(request.user)
+        if used >= monthly_cap:
+            return JsonResponse({
+                "error":  "tier_quota_exceeded",
+                "detail": (
+                    f"Your {tier['name']} tier is capped at {monthly_cap} generations "
+                    "per calendar month and you've used them all. Upgrade to continue."
+                ),
+                "tier":          tier_slug,
+                "monthly_cap":   monthly_cap,
+                "monthly_used":  used,
+            }, status=429)
+
     # ----- Language gate: existing conversation always wins; new conv reads
     # the requested language from the payload (default asm). -----
     requested_lang = (payload.get("language") or Conversation.LANG_ASM).lower()
     if requested_lang not in {Conversation.LANG_ASM, Conversation.LANG_C}:
         requested_lang = Conversation.LANG_ASM
+    # 3. Language access (free tier is ASM-only)
+    allowed_langs = tier.get("languages") or {Conversation.LANG_ASM}
+    if requested_lang not in allowed_langs:
+        return JsonResponse({
+            "error": "tier_language_locked",
+            "detail": (
+                f"The {requested_lang.upper()} model is restricted to higher tiers. "
+                f"Your current tier ({tier['name']}) supports: "
+                f"{', '.join(sorted(s.upper() for s in allowed_langs))}."
+            ),
+            "tier":           tier_slug,
+            "allowed_langs":  sorted(allowed_langs),
+        }, status=403)
 
     conversation_id = payload.get("conversation_id")
     if conversation_id:

@@ -25,5 +25,12 @@ urlpatterns = [
         views.password_reset_confirm_view,
         name="password_reset_confirm",
     ),
+    # Stripe / billing — these MUST come BEFORE the generic subscribe/<slug:tier>/
+    # route, otherwise Django matches "subscribe/success/" against the slug
+    # pattern (with tier="success") and 404s in subscribe_view.
+    path("subscribe/success/", views.subscribe_success_view, name="subscribe_success"),
+    path("subscribe/cancel/",  views.subscribe_cancel_view,  name="subscribe_cancel"),
+    path("billing/portal/",    views.billing_portal_view,    name="billing_portal"),
+    path("billing/webhook/",   views.stripe_webhook_view,    name="stripe_webhook"),
     path("subscribe/<slug:tier>/", views.subscribe_view, name="subscribe"),
 ]

@@ -16,6 +16,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .activity import log_event
@@ -33,6 +34,8 @@ from .forms import (
 )
 from .models import ActivityEvent, ApiKey, UserProfile
 from .ratelimit import rate_limit
+from . import billing
+from . import tiers as tier_lib
 from . import totp as totplib
 from .verification import parse_token, send_verification_email
 
@@ -56,11 +59,9 @@ def _finalize_login(request, user, *, remember_me=False):
     request.session["_dp_created_at"] = _tz.now().isoformat()
     log_event(request, ActivityEvent.LOGIN, user=user)
 
-TIER_INFO = {
-    "sniffer":  {"name": "SNIFFER",   "tag": "TIER 01", "tagline": "Just listening in",  "price": "$0",   "cta": "Activate Sniffer"},
-    "exploit":  {"name": "EXPLOIT",   "tag": "TIER 02", "tagline": "Finding the gaps",   "price": "$29",  "cta": "Activate Exploit"},
-    "zeroday":  {"name": "ZERO DAY",  "tag": "TIER 03", "tagline": "Unstoppable",        "price": "$149", "cta": "Activate Zero Day"},
-}
+# Backwards-compat shim — older code paths look up tier display info here.
+# New code should import from `accounts.tiers` (single source of truth).
+TIER_INFO = tier_lib.TIER_LIMITS
 
 
 @rate_limit(prefix="signup", limit=5, window_seconds=3600)  # 5 per IP per hour
@@ -161,10 +162,31 @@ def settings_view(request):
                 messages.success(request, "Password changed.")
                 return redirect("accounts:settings")
 
+    profile = getattr(request.user, "profile", None)
+    tier_slug = (profile.subscription_tier if profile else "sniffer") or "sniffer"
+    tier_info = tier_lib.get_tier(tier_slug)
+
+    # Lightweight monthly count for the quota row in Settings.
+    from chat.models import Message as ChatMessage
+    from django.utils import timezone as _tz
+    month_start = _tz.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_used = ChatMessage.objects.filter(
+        conversation__user=request.user,
+        role=ChatMessage.USER,
+        created_at__gte=month_start,
+    ).count()
+
     return render(request, "accounts/settings.html", {
-        "profile_form": profile_form,
+        "profile_form":  profile_form,
         "password_form": password_form,
-        "active_tier": request.session.get("tier"),
+        "active_tier":   tier_slug,
+        "tier_info":     tier_info,
+        "tier_status":   profile.subscription_status if profile else "none",
+        "monthly_used":  monthly_used,
+        "monthly_cap":   tier_info.get("monthly_gens"),
+        "period_end":    profile.current_period_end if profile else None,
+        "is_paid":       bool(profile and profile.is_paid_subscriber),
+        "billing_configured": billing.is_configured(),
     })
 
 
@@ -250,28 +272,132 @@ def password_reset_confirm_view(request, uidb64, token):
 
 @login_required(login_url="accounts:login")
 def subscribe_view(request, tier):
-    info = TIER_INFO.get(tier)
+    info = tier_lib.TIER_LIMITS.get(tier)
     if info is None:
         raise Http404("Unknown tier.")
+
+    # Free tier path — no payment, but still requires the ethical-use form.
+    is_free = info.get("price_amount", 0) == 0
+
     if request.method == "POST":
         form = SubscriptionAgreementForm(request.POST)
         if form.is_valid():
-            # Stub activation — record on session. Wire to billing + DB later.
-            request.session["tier"] = tier
-            request.session["tier_signed_at"] = form.cleaned_data["signature"]
             log_event(
                 request, ActivityEvent.SUBSCRIPTION_ACTIVATE,
-                detail=info["name"],
+                detail=f"{info['name']} (consent recorded)",
             )
-            messages.success(request, f"{info['name']} activated. Welcome aboard.")
-            return redirect("chat:chat")
+
+            if is_free:
+                # Activate the free tier locally — no Stripe object needed.
+                profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                profile.subscription_tier   = tier
+                profile.subscription_status = "active"
+                profile.save(update_fields=["subscription_tier", "subscription_status"])
+                request.session["tier"] = tier
+                messages.success(request, f"{info['name']} activated.")
+                return redirect("chat:chat")
+
+            # Paid tier — push into Stripe Checkout.
+            if not billing.is_configured():
+                messages.error(
+                    request,
+                    "Billing is not configured on this server. Set STRIPE_SECRET_KEY "
+                    "+ tier price IDs and try again.",
+                )
+                return redirect("accounts:subscribe", tier=tier)
+
+            # NOTE: don't pipe the placeholder through `build_absolute_uri` —
+            # it goes through `iri_to_uri()` which percent-encodes `{` and `}`,
+            # producing `%7BCHECKOUT_SESSION_ID%7D` which Stripe won't substitute.
+            origin = f"{request.scheme}://{request.get_host()}"
+            success_url = (
+                f"{origin}{reverse('accounts:subscribe_success')}"
+                f"?tier={tier}&session_id={{CHECKOUT_SESSION_ID}}"
+            )
+            cancel_url = (
+                f"{origin}{reverse('accounts:subscribe_cancel')}?tier={tier}"
+            )
+            checkout_url = billing.create_checkout_session(
+                request.user, tier,
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+            if not checkout_url:
+                messages.error(
+                    request,
+                    "Could not start checkout. The Stripe price for this tier "
+                    "may be missing — check STRIPE_PRICE_* env vars.",
+                )
+                return redirect("accounts:subscribe", tier=tier)
+            return redirect(checkout_url)
     else:
         form = SubscriptionAgreementForm()
+
     return render(request, "accounts/subscribe.html", {
         "form": form,
         "tier": tier,
         "info": info,
+        "billing_configured": billing.is_configured(),
+        "is_free_tier":       is_free,
     })
+
+
+@login_required(login_url="accounts:login")
+def subscribe_success_view(request):
+    """Landing page after a successful Stripe Checkout.
+
+    The webhook is the authoritative source — by the time the user lands here
+    the subscription state may already be active, OR it may be a few seconds
+    behind. We render either way; the dashboard will reflect reality."""
+    tier = (request.GET.get("tier") or "").lower()
+    info = tier_lib.TIER_LIMITS.get(tier)
+    return render(request, "accounts/subscribe_success.html", {
+        "tier": tier,
+        "info": info,
+    })
+
+
+@login_required(login_url="accounts:login")
+def subscribe_cancel_view(request):
+    tier = (request.GET.get("tier") or "").lower()
+    info = tier_lib.TIER_LIMITS.get(tier)
+    return render(request, "accounts/subscribe_cancel.html", {
+        "tier": tier,
+        "info": info,
+    })
+
+
+@login_required(login_url="accounts:login")
+def billing_portal_view(request):
+    """Redirect the user to Stripe's hosted Customer Portal."""
+    if not billing.is_configured():
+        messages.error(request, "Billing is not configured on this server.")
+        return redirect("accounts:settings")
+    return_url = request.build_absolute_uri(reverse("accounts:settings"))
+    portal_url = billing.create_billing_portal_url(request.user, return_url=return_url)
+    if not portal_url:
+        messages.error(
+            request,
+            "Could not open the billing portal. You may need to start a paid "
+            "subscription before managing it.",
+        )
+        return redirect("accounts:settings")
+    return redirect(portal_url)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def stripe_webhook_view(request):
+    """Stripe → us. Verifies signature, updates the matching UserProfile.
+    CSRF-exempt because Stripe doesn't send our CSRF token; signature
+    verification (HMAC of the raw body) replaces CSRF."""
+    from django.http import HttpResponse
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
+    event = billing.parse_webhook_event(request.body, sig_header)
+    if event is None:
+        return HttpResponse(status=400)
+    handled = billing.handle_event(event)
+    return HttpResponse(status=200 if handled else 204)
 
 
 @login_required(login_url="accounts:login")

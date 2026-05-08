@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription activated · Dark Prompt{% endblock %}
+{% block page_class %}auth{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<section class="auth-shell auth-shell-signin">
+  <div class="auth-bg" aria-hidden="true"></div>
+  <div class="auth-card">
+    <span class="auth-corner auth-corner-tl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-tr" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-bl" aria-hidden="true"></span>
+    <span class="auth-corner auth-corner-br" aria-hidden="true"></span>
+
+    <header class="auth-head">
+      <h1>{{ info.name|default:"Subscription" }} activated</h1>
+      <p class="auth-sub">// Payment received — welcome aboard</p>
+    </header>
+
+    <div class="auth-success">
+      <div class="auth-success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M5 12 L10 17 L20 7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <p>
+        Stripe has confirmed your payment. Your account is now provisioned for the
+        <strong>{{ info.name|default:tier }}</strong> tier.
+      </p>
+      <p class="muted">
+        It can take a few seconds for the activation webhook to land — if your tier
+        badge in Settings still shows the old plan, refresh in a moment. You can
+        manage or cancel the subscription any time from Settings.
+      </p>
+
+      <div class="settings-actions" style="margin-top: 22px;">
+        <a href="{% url 'chat:chat' %}" class="auth-btn auth-btn-primary">
+          <span class="auth-btn-text">Open console</span>
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M9 5 L18 12 L9 19 Z"/>
+          </svg>
+        </a>
+        <a href="{% url 'accounts:settings' %}" class="auth-btn auth-btn-ghost auth-btn-back">
+          <svg class="auth-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12 H5"/><path d="M12 5 L5 12 L12 19"/>
+          </svg>
+          <span class="auth-btn-text">Back to settings</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

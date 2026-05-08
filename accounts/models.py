@@ -67,6 +67,30 @@ class UserProfile(models.Model):
     totp_confirmed_at  = models.DateTimeField(null=True, blank=True)
     backup_codes_hash  = models.TextField(blank=True, default="")  # newline-separated SHA256 hashes
 
+    # ----- Subscription / billing (Stripe) -----
+    SUBSCRIPTION_TIER_CHOICES = [
+        ("sniffer", "Sniffer (Free)"),
+        ("exploit", "Exploit"),
+        ("zeroday", "Zero Day"),
+    ]
+    SUBSCRIPTION_STATUS_CHOICES = [
+        ("none",     "None"),
+        ("active",   "Active"),
+        ("trialing", "Trialing"),
+        ("past_due", "Past due"),
+        ("canceled", "Canceled"),
+        ("unpaid",   "Unpaid"),
+    ]
+    subscription_tier   = models.CharField(
+        max_length=16, choices=SUBSCRIPTION_TIER_CHOICES, default="sniffer",
+    )
+    subscription_status = models.CharField(
+        max_length=16, choices=SUBSCRIPTION_STATUS_CHOICES, default="none",
+    )
+    stripe_customer_id     = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    stripe_subscription_id = models.CharField(max_length=80, blank=True, default="")
+    current_period_end     = models.DateTimeField(null=True, blank=True)
+
     @property
     def email_verified(self):
         return self.email_verified_at is not None
@@ -74,6 +98,11 @@ class UserProfile(models.Model):
     @property
     def totp_enabled(self):
         return self.totp_confirmed_at is not None
+
+    @property
+    def is_paid_subscriber(self):
+        return self.subscription_tier in {"exploit", "zeroday"} and \
+               self.subscription_status in {"active", "trialing"}
 
     def __str__(self):
         return f"profile<{self.user.username}>"

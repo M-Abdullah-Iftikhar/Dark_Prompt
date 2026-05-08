@@ -223,6 +223,15 @@ PASSWORD_RESET_TIMEOUT = 60 * 30  # 30 minutes
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 BREVO_API_KEY  = os.environ.get("BREVO_API_KEY",  "")
 
+# Stripe — used in TEST MODE for now (sk_test_… / pk_test_… keys). Flip the
+# keys to live values when ready for production. The Price IDs come from the
+# Stripe dashboard after you create products for each tier.
+STRIPE_SECRET_KEY      = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET  = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICE_EXPLOIT   = os.environ.get("STRIPE_PRICE_EXPLOIT", "")
+STRIPE_PRICE_ZERODAY   = os.environ.get("STRIPE_PRICE_ZERODAY", "")
+
 # Cost telemetry — synthetic dollar rate per 1k tokens for the local LLM.
 # Configurable via env so it can be tuned without a redeploy.
 LLM_COST_PER_1K_TOKENS = float(os.environ.get("LLM_COST_PER_1K_TOKENS", "0.0005"))

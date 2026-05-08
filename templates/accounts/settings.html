@@ -123,10 +123,31 @@
           {% endif %}
         </span>
       </div>
-      {% if active_tier %}
+      <div class="settings-meta-row">
+        <span class="settings-key">TIER</span>
+        <span class="settings-val">
+          <span class="settings-chip {% if is_paid %}settings-chip-ok{% endif %}">{{ tier_info.name|default:active_tier|upper }}</span>
+          {% if tier_status and tier_status != 'none' and tier_status != 'active' %}
+            <span class="settings-chip settings-chip-warn">{{ tier_status|upper }}</span>
+          {% endif %}
+          {% if is_paid %}
+            <a href="{% url 'accounts:billing_portal' %}" class="settings-inline-link">manage</a>
+          {% else %}
+            <a href="{% url 'core:landing' %}#pricing" class="settings-inline-link">upgrade</a>
+          {% endif %}
+        </span>
+      </div>
+      <div class="settings-meta-row">
+        <span class="settings-key">USAGE</span>
+        <span class="settings-val mono">
+          {{ monthly_used|default:0 }}{% if monthly_cap %} / {{ monthly_cap }}{% else %} / unlimited{% endif %}
+          generations this month
+        </span>
+      </div>
+      {% if period_end %}
         <div class="settings-meta-row">
-          <span class="settings-key">TIER</span>
-          <span class="settings-val"><span class="settings-chip">{{ active_tier|upper }}</span></span>
+          <span class="settings-key">RENEWS</span>
+          <span class="settings-val mono">{{ period_end|date:"Y-m-d" }}</span>
         </div>
       {% endif %}
     </div>
