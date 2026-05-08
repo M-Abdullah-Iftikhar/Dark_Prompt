@@ -706,7 +706,10 @@
     return html;
   }
 
+  const _DP_META_RE = /^<!--\s*DP_META:\s*\{[\s\S]*?\}\s*-->\r?\n?/;
+
   function makeCodeBlock(lang, code) {
+    code = code.replace(_DP_META_RE, '');
     const normLang = LANG_MAP[lang] || (lang && Prism.languages[lang] ? lang : '') || '';
     const ext = EXT_MAP[normLang] || normLang || 'txt';
     const display = (normLang || 'plain').toUpperCase();

@@ -31,6 +31,7 @@ from .models import Conversation, Message
 # change. The frontend strips the marker before rendering the body.
 META_MARK_OPEN  = "<!-- DP_META: "
 META_MARK_CLOSE = " -->\n"
+_DP_META_STRIP  = re.compile(r'^<!--\s*DP_META:\s*\{[\s\S]*?\}\s*-->\r?\n?')
 
 
 def _wrap_with_meta(meta: dict, body: str) -> str:
@@ -787,7 +788,7 @@ def api_analyse_code(request):
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"error": "invalid_json"}, status=400)
-    code = payload.get("code") or ""
+    code = _DP_META_STRIP.sub("", payload.get("code") or "")
     lang = payload.get("lang") or ""
     if not code.strip():
         return JsonResponse({"error": "empty_code"}, status=400)
@@ -811,7 +812,7 @@ def api_compile_code(request):
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"error": "invalid_json"}, status=400)
-    code = payload.get("code") or ""
+    code = _DP_META_STRIP.sub("", payload.get("code") or "")
     lang = payload.get("lang") or ""
     if not code.strip():
         return JsonResponse({"error": "empty_code"}, status=400)
