@@ -320,7 +320,17 @@ def analyse(code: str, lang: str) -> AnalysisResult:
     result.api_hits = _scan_apis(code)
 
     handler = _ANALYSE_DISPATCH.get(canonical, _analyse_unsupported)
-    handler(code, result)
+    try:
+        handler(code, result)
+    except subprocess.TimeoutExpired:
+        result.syntax_ok = False
+        result.syntax_detail = f"Analyser exceeded {ANALYSE_TIMEOUT_S}s timeout."
+    except FileNotFoundError as exc:
+        result.syntax_ok = False
+        result.syntax_detail = f"Toolchain not found: {exc}"
+    except Exception as exc:
+        result.syntax_ok = False
+        result.syntax_detail = f"Analyser error: {type(exc).__name__}: {exc}"
 
     result.elapsed_ms = int((time.monotonic() - started) * 1000)
     return result

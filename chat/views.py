@@ -795,6 +795,9 @@ def api_analyse_code(request):
         result = sandbox.analyse(code, lang)
     except sandbox.SandboxError as exc:
         return JsonResponse({"error": "sandbox_refused", "detail": str(exc)}, status=413)
+    except Exception as exc:
+        log.exception("analyse crashed for lang=%r", lang)
+        return JsonResponse({"error": "analyse_error", "detail": str(exc)}, status=500)
     return JsonResponse(result.to_dict())
 
 
