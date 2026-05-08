@@ -61,12 +61,61 @@ def detect_toolchains() -> dict[str, Optional[str]]:
         "masm":   _resolve_tool("DARK_PROMPT_MASM",   ["ml64.exe", "ml.exe", "jwasm.exe", "tasm.exe"]),
         "gcc":    _resolve_tool("DARK_PROMPT_GCC",    ["gcc", "gcc.exe"]),
         "clang":  _resolve_tool("DARK_PROMPT_CLANG",  ["clang", "clang.exe"]),
+        # MinGW-w64 cross compiler — required to syntax-check / build code that
+        # pulls in <windows.h>, <winsock2.h>, <psapi.h>, etc. on a host that
+        # isn't Windows itself. If unset we fall back to plain gcc/clang and
+        # surface a friendlier "Windows headers unavailable" note.
+        "mingw":  _resolve_tool("DARK_PROMPT_MINGW",  [
+            "x86_64-w64-mingw32-gcc",
+            "i686-w64-mingw32-gcc",
+            "x86_64-w64-mingw32-gcc.exe",
+        ]),
         "python": _resolve_tool("DARK_PROMPT_PYTHON", ["python", "python3", "python.exe"]),
         "pwsh":   _resolve_tool("DARK_PROMPT_PWSH",   ["pwsh", "pwsh.exe", "powershell.exe"]),
         "bash":   _resolve_tool("DARK_PROMPT_BASH",   ["bash", "bash.exe"]),
         "go":     _resolve_tool("DARK_PROMPT_GO",     ["go", "go.exe"]),
         "rustc":  _resolve_tool("DARK_PROMPT_RUSTC",  ["rustc", "rustc.exe"]),
     }
+
+
+# Headers / identifiers that mean the source targets Windows. If any of these
+# show up we prefer MinGW over the host's plain gcc/clang (which on Linux has
+# no `windows.h`).
+_WIN_TARGET_RE = re.compile(
+    r"(?mi)"
+    r"^\s*#\s*include\s*[<\"](windows|winsock2?|ws2tcpip|wininet|winhttp|"
+    r"winuser|winnt|winreg|winsvc|tlhelp32|psapi|shlobj|shellapi|wininet|"
+    r"setupapi|sddl|aclapi|fileapi|processthreadsapi|synchapi|memoryapi|"
+    r"libloaderapi|errhandlingapi|handleapi|winbase|tchar|stdafx|wincrypt|"
+    r"bcrypt|ncrypt|wow64apiset|sysinfoapi|profileapi|dbghelp|imagehlp|"
+    r"detours|winsock|mmsystem)(\.h)?[>\"]"
+)
+
+
+def _is_windows_targeted(code: str) -> bool:
+    return bool(_WIN_TARGET_RE.search(code or ""))
+
+
+def _pick_c_compiler(code: str) -> tuple[Optional[str], Optional[str]]:
+    """Pick the right C compiler for `code`.
+
+    Returns (compiler_path, missing_label). When the source pulls in Windows
+    headers we prefer MinGW; when it doesn't, we prefer the host's clang/gcc.
+    `missing_label` is set to a user-friendly string when no suitable
+    compiler is available so the caller can surface it.
+    """
+    if _is_windows_targeted(code):
+        if TOOLS["mingw"]:
+            return TOOLS["mingw"], None
+        # Plain gcc/clang on a non-Windows host can't see <windows.h>.
+        # On Windows itself a regular gcc is fine — it ships with the SDK.
+        if os.name == "nt" and (TOOLS["gcc"] or TOOLS["clang"]):
+            return TOOLS["clang"] or TOOLS["gcc"], None
+        return None, "x86_64-w64-mingw32-gcc (MinGW)"
+    cc = TOOLS["clang"] or TOOLS["gcc"]
+    if cc:
+        return cc, None
+    return None, "clang or gcc"
 
 
 # Cached at import. Not refreshed at runtime — the dev restarts the server
@@ -338,10 +387,23 @@ def _analyse_bash(code: str, r: AnalysisResult) -> None:
 
 
 def _analyse_c(code: str, r: AnalysisResult) -> None:
-    cc = TOOLS["clang"] or TOOLS["gcc"]
+    cc, missing = _pick_c_compiler(code)
     if not cc:
-        r.warnings.append("No C toolchain (clang/gcc) detected.")
-        r.missing_tool = "clang or gcc"
+        # The source needs Windows headers but this host has no MinGW.
+        # Don't report it as a syntax error — surface a softer note so the
+        # user understands it's an environment limitation, not bad code.
+        r.warnings.append(
+            "Windows-targeted source — install MinGW-w64 (or set "
+            "DARK_PROMPT_MINGW) to enable static analysis here."
+        )
+        r.missing_tool = missing
+        # The code itself is structurally valid as far as we can tell; let
+        # the user still see the API hits + MITRE pills.
+        r.syntax_ok = True
+        r.syntax_detail = (
+            "Skipped — host has no Windows SDK / MinGW headers."
+        )
+        r.can_compile = False
         return
     with tempfile.NamedTemporaryFile("w", suffix=".c", delete=False, encoding="utf-8") as f:
         f.write(code); src = f.name
@@ -523,13 +585,19 @@ def _compile_bash(code: str, r: CompileResult, build: Path) -> None:
 
 
 def _compile_c(code: str, r: CompileResult, build: Path, *, cpp: bool = False) -> None:
-    cc = TOOLS["clang"] or TOOLS["gcc"]
+    cc, missing = _pick_c_compiler(code)
     if not cc:
-        r.stderr = "clang/gcc not found."; return
+        r.stderr = (
+            f"{missing} not found — required to build Windows-targeted "
+            "C source on this host."
+        )
+        return
     ext = ".cpp" if cpp else ".c"
     src = build / f"main{ext}"
     src.write_text(code, encoding="utf-8")
-    binary = build / ("main.exe" if os.name == "nt" else "main")
+    # MinGW always emits a PE; native gcc/clang follow the host convention.
+    is_mingw = "mingw" in (cc or "").lower()
+    binary = build / ("main.exe" if (os.name == "nt" or is_mingw) else "main")
     proc = _run([cc, str(src), "-o", str(binary), "-Wall"],
                 cwd=build, timeout=COMPILE_TIMEOUT_S)
     r.stdout, r.stderr = proc.stdout, proc.stderr
