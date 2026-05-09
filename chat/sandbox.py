@@ -59,7 +59,17 @@ def detect_toolchains() -> dict[str, Optional[str]]:
     """Return a map of toolchain name -> absolute path (or None if missing)."""
     return {
         "nasm":   _resolve_tool("DARK_PROMPT_NASM",   ["nasm", "nasm.exe"]),
-        "masm":   _resolve_tool("DARK_PROMPT_MASM",   ["ml64.exe", "ml.exe", "jwasm.exe", "tasm.exe"]),
+        # MASM-compatible assemblers, in preference order:
+        #   ml64 / ml — Microsoft (Windows only, ships with VS Build Tools)
+        #   uasm      — modern MASM-compatible drop-in (Linux + Windows)
+        #   jwasm     — UASM's predecessor (still around on some hosts)
+        #   tasm      — legacy Borland assembler
+        "masm":   _resolve_tool("DARK_PROMPT_MASM",   [
+            "ml64.exe", "ml.exe",
+            "uasm",  "uasm.exe",
+            "jwasm", "jwasm.exe",
+            "tasm.exe",
+        ]),
         "gcc":    _resolve_tool("DARK_PROMPT_GCC",    ["gcc", "gcc.exe"]),
         "clang":  _resolve_tool("DARK_PROMPT_CLANG",  ["clang", "clang.exe"]),
         # MinGW-w64 cross compiler — required to syntax-check / build code that

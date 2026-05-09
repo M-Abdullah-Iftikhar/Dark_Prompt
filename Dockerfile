@@ -5,12 +5,25 @@ FROM python:3.12-slim
 # native Python runtime on Render where the filesystem is read-only.
 #   gcc                  — native Linux C compiler
 #   gcc-mingw-w64-x86-64 — cross-compiler for Windows-targeted C (#include <windows.h> etc.)
-#   nasm                 — assembler for x86/x86-64 ASM
+#   nasm                 — assembler for NASM-style x86/x86-64 ASM
+#   git/make/g++         — build deps for UASM (removed after build to keep image lean)
+#
+# UASM is a MASM-compatible assembler not packaged in Debian, so we build it
+# from source. It handles the .model / .code / .386 directives that NASM
+# can't, which our MASM-style fallback corpus uses.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         gcc \
         gcc-mingw-w64-x86-64 \
         nasm \
+        git \
+        make \
+        g++ \
+    && git clone --depth 1 https://github.com/Terraspace/UASM.git /tmp/uasm \
+    && make -C /tmp/uasm -f gccLinux64.mak \
+    && cp /tmp/uasm/GccUnixR/uasm /usr/local/bin/uasm \
+    && rm -rf /tmp/uasm \
+    && apt-get purge -y --auto-remove git make g++ \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
