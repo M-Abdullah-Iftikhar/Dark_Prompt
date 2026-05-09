@@ -66,8 +66,8 @@ def detect_toolchains() -> dict[str, Optional[str]]:
         #   tasm      — legacy Borland assembler
         "masm":   _resolve_tool("DARK_PROMPT_MASM",   [
             "ml64.exe", "ml.exe",
-            "uasm",  "uasm.exe",
-            "jwasm", "jwasm.exe",
+            "uasm64.exe", "uasm32.exe", "uasm.exe", "uasm",
+            "jwasm.exe", "jwasm",
             "tasm.exe",
         ]),
         "gcc":    _resolve_tool("DARK_PROMPT_GCC",    ["gcc", "gcc.exe"]),
