@@ -1285,7 +1285,8 @@
     if (action.dataset.action === 'regen') {
       if (!id) return;
       msg.classList.add('is-regenerating');
-      try {
+
+      async function doRegenerate(forceNew) {
         const res = await fetch(`/api/messages/${id}/regenerate/`, {
           method: 'POST',
           headers: {
@@ -1295,15 +1296,44 @@
           body: JSON.stringify({
             temperature: parseFloat(tempEl.value),
             max_tokens: parseInt(maxEl.value, 10),
+            force_new: !!forceNew,
           }),
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        return { ok: res.ok, status: res.status, data: payload };
+      }
+
+      try {
+        let { ok, status, data } = await doRegenerate(false);
+        if (!ok) {
           showLlmDownBanner(
-            { code: data.error || 'llm_error', detail: data.detail || `HTTP ${res.status}` }
+            { code: data.error || 'llm_error', detail: data.detail || `HTTP ${status}` }
           );
           return;
         }
+
+        // The current code already compiles cleanly — confirm before
+        // generating a fresh variant from the LLM (or fallback corpus).
+        if (data.regenerate_kind === 'already_clean') {
+          msg.classList.remove('is-regenerating');
+          const proceed = await openConfirm({
+            title:   'Code is already clean',
+            body:    data.detail ||
+                     'The current code already compiles cleanly. Generating a new variant will replace it with a fresh sample.',
+            target:  '',
+            okLabel: 'Generate new variant',
+          });
+          if (!proceed) return;
+          msg.classList.add('is-regenerating');
+          ({ ok, status, data } = await doRegenerate(true));
+          if (!ok) {
+            showLlmDownBanner(
+              { code: data.error || 'llm_error', detail: data.detail || `HTTP ${status}` }
+            );
+            return;
+          }
+        }
+
         // Replace this message's body content with the new stream
         const body = msg.querySelector('.msg-body');
         body.innerHTML = '';
@@ -1329,6 +1359,13 @@
         if (churn) clearInterval(churn);
         settleFingerprint(msg, data.assistant_message.content);
         addMsgActions(msg);
+
+        if (data.regenerate_kind === 'fixed') {
+          toast(
+            '<span class="toast-tag">FIXED</span>' +
+            '<span class="toast-meta">Compile errors repaired</span>'
+          );
+        }
       } catch (err) {
         showLlmDownBanner({ code: 'network', detail: err.message || String(err) });
       } finally {
