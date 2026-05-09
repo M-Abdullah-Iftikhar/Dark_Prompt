@@ -1342,7 +1342,7 @@ main.page{ position: relative; z-index: 1; }
 .cs-action{
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 12px;
-  background: linear-gradient(135deg, #780606 0%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   color: #FEC5D3;
   border: 1px solid rgba(254, 197, 211, 0.45);
   cursor: pointer;
@@ -1352,7 +1352,7 @@ main.page{ position: relative; z-index: 1; }
   text-decoration: none;
   transition: background 140ms ease;
 }
-.cs-action:hover{ background: linear-gradient(135deg, #8C0808 0%, #5A0303 100%); color: #F7F3EE; }
+.cs-action:hover{ background: linear-gradient(135deg, #C00A0A 0%, #3A0000 100%); color: #F7F3EE; }
 .cs-action[disabled],
 .cs-action.is-busy{ opacity: 0.6; cursor: wait; }
 .cs-action-dl{ background: transparent; }
@@ -1658,7 +1658,7 @@ main.page{ position: relative; z-index: 1; }
 .lang-toggle-btn:last-child{ border-right: none; }
 .lang-toggle-btn:hover{ background: rgba(120, 6, 6, 0.18); color: #FEC5D3; }
 .lang-toggle-btn.is-active{
-  background: linear-gradient(135deg, #780606 0%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   color: #FEC5D3;
   text-shadow: 0 0 6px rgba(254, 197, 211, 0.45);
 }
@@ -4043,7 +4043,7 @@ a:focus-visible{
   --font-display:  'Rajdhani', 'Barlow Condensed', sans-serif;
   --letter-display: 0.04em;
 
-  --holo:      linear-gradient(135deg, #FEC5D3 0%, #780606 50%, #3A0303 100%);
+  --holo:      linear-gradient(135deg, #A50808 0%, #780606 50%, #260000 100%);
   --holo-soft: linear-gradient(135deg, rgba(254, 197, 211, 0.22), rgba(120, 6, 6, 0.10));
 
   /* Dark theme tokens — pure black canvas */
@@ -4277,7 +4277,7 @@ a:focus-visible{
 }
 [data-theme="dark"] .dh-nav-btn-jack{
   color: var(--dh-bone);
-  background: linear-gradient(135deg, #FEC5D3 0%, #780606 60%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   border: none;
   font-weight: bold;
   box-shadow: 0 0 14px rgba(120, 6, 6, 0.45);
@@ -4410,7 +4410,7 @@ a:focus-visible{
 [data-theme="dark"] .dh-btn-icon{ width: 18px; height: 18px; flex: 0 0 auto; }
 [data-theme="dark"] .dh-btn-primary{
   --btn-fg: var(--dh-bone);
-  --btn-bg: linear-gradient(135deg, #FEC5D3 0%, #780606 50%, #4A0202 100%);
+  --btn-bg: linear-gradient(135deg, #A50808 0%, #260000 100%);
   --btn-bd: transparent;
   box-shadow: 0 0 28px rgba(120, 6, 6, 0.50);
 }
@@ -4941,7 +4941,7 @@ a:focus-visible{
   overflow: hidden;
 }
 [data-theme="dark"] .pw-strength-bar span{
-  background: linear-gradient(90deg, #FEC5D3, #780606);
+  background: linear-gradient(90deg, #260000, #A50808);
 }
 [data-theme="dark"] .pw-strength-label{
   font-family: 'Share Tech Mono', monospace;
@@ -4954,7 +4954,7 @@ a:focus-visible{
 [data-theme="dark"] .auth-form .btn-primary{
   width: 100%;
   padding: 16px 28px;
-  background: linear-gradient(135deg, #FEC5D3 0%, #780606 50%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   color: var(--dh-bone);
   border: none;
   font-family: 'Rajdhani', sans-serif;
@@ -5059,7 +5059,7 @@ a:focus-visible{
 [data-theme="dark"] .auth-btn-icon{ width: 18px; height: 18px; flex: 0 0 auto; }
 
 [data-theme="dark"] .auth-btn-primary{
-  background: linear-gradient(135deg, #FEC5D3 0%, #780606 50%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   color: var(--dh-bone);
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%);
@@ -5370,7 +5370,7 @@ a:focus-visible{
 [data-theme="dark"] .demo-send{
   display: inline-flex; align-items: center; justify-content: center;
   padding: 9px 24px 9px 18px;
-  background: linear-gradient(135deg, #FEC5D3 0%, #780606 60%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   color: var(--dh-bone);
   border: none;
   border-radius: 0;
@@ -5616,7 +5616,7 @@ a:focus-visible{
   transition: filter 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 [data-theme="dark"] .cta-inner .btn-primary{
-  background: linear-gradient(135deg, #FEC5D3 0%, #780606 50%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   color: var(--dh-bone);
   border-color: transparent;
   box-shadow: 0 0 22px rgba(120, 6, 6, 0.45);
@@ -6066,7 +6066,7 @@ a:focus-visible{
   transition: filter 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 [data-theme="dark"] .chat-shell .btn-primary{
-  background: linear-gradient(135deg, #FEC5D3 0%, #780606 60%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   color: var(--dh-bone);
   border: none;
   clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%);
@@ -6303,7 +6303,7 @@ a:focus-visible{
   top: -12px; left: 50%;
   transform: translateX(-50%);
   padding: 5px 14px;
-  background: linear-gradient(135deg, #FEC5D3 0%, #780606 60%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   color: var(--dh-bone);
   font-family: 'Rajdhani', sans-serif;
   font-weight: 700;
@@ -6440,7 +6440,7 @@ a:focus-visible{
   border-color: rgba(254, 197, 211, 0.85);
 }
 [data-theme="dark"] .tier-cta-primary{
-  background: linear-gradient(135deg, #FEC5D3 0%, #780606 60%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   border-color: transparent;
   box-shadow: 0 0 22px rgba(120, 6, 6, 0.45);
 }
@@ -7608,10 +7608,10 @@ a:focus-visible{
   display: block;
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #780606, #FEC5D3);
+  background: linear-gradient(90deg, #260000, #A50808);
   transition: width 320ms cubic-bezier(.4,.2,.2,1);
 }
-.token-meter.is-hot  .token-meter-bar-fill{ background: linear-gradient(90deg, #FEC5D3, #FF1A6B); }
+.token-meter.is-hot  .token-meter-bar-fill{ background: linear-gradient(90deg, #A50808, #FF1A6B); }
 .token-meter.is-warn .token-meter-bar-fill{ background: linear-gradient(90deg, #FF1A6B, #FF1A6B); }
 .token-meter.is-warn .token-meter-value{ color: #FEC5D3; }
 
@@ -8057,7 +8057,7 @@ a:focus-visible{
   color: #FEC5D3;
 }
 .dp-tour-btn-primary{
-  background: linear-gradient(135deg, #780606 0%, #4A0202 100%);
+  background: linear-gradient(135deg, #A50808 0%, #260000 100%);
   border-color: rgba(120, 6, 6, 0.7);
   color: #FEC5D3;
 }
