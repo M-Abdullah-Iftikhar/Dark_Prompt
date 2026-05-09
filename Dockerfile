@@ -1,4 +1,9 @@
-FROM python:3.12-slim
+# Pinned to bookworm (Debian 12, GCC 12) because UASM's source has
+# -Wimplicit-function-declaration warnings that GCC 14 (Debian 13/trixie)
+# now treats as hard errors. GCC 12 keeps them as warnings so the build
+# completes. UASM still links fine — `strupr` is provided by its Unix
+# portability layer in another .c file.
+FROM python:3.12-slim-bookworm
 
 # Install C/ASM toolchains needed by the sandbox Analyse/Compile features.
 # Root is available here (image build time) — no sudo needed, unlike the
@@ -21,6 +26,7 @@ RUN apt-get update \
         g++ \
     && git clone --depth 1 https://github.com/Terraspace/UASM.git /tmp/uasm \
     && make -C /tmp/uasm -f gccLinux64.mak \
+        EXTRA_C_FLAGS="-Wno-error=implicit-function-declaration" \
     && cp /tmp/uasm/GccUnixR/uasm /usr/local/bin/uasm \
     && rm -rf /tmp/uasm \
     && apt-get purge -y --auto-remove git make g++ \
