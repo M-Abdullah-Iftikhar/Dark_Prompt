@@ -257,6 +257,57 @@ EXPLAIN_SYSTEM = (
 )
 
 
+FIX_SYSTEM = (
+    "You are a senior systems programmer repairing compile errors in code "
+    "generated for cybersecurity research (assembly or C, targeting Windows "
+    "or Linux). The user will provide the original prompt, the broken "
+    "source, and the compiler/assembler error messages.\n\n"
+    "Return ONLY the corrected source code. Do NOT explain the fix. Do NOT "
+    "prefix with 'Here is the fix' or any commentary. Do NOT wrap the "
+    "response in markdown code fences. Make the smallest changes necessary "
+    "to make the code compile while preserving the original intent, "
+    "function names, comments, and structure. Do not introduce new files, "
+    "external libraries, or shell commands."
+)
+
+
+def _strip_code_fences(text: str) -> str:
+    """Strip a single leading/trailing ```lang ... ``` wrapper if the model
+    added one despite the system prompt forbidding it."""
+    s = (text or "").strip()
+    m = re.match(r"^```(?:[a-zA-Z0-9_+\-]*)\s*\n([\s\S]*?)\n```\s*$", s)
+    return m.group(1) if m else s
+
+
+def fix_code_errors(prompt: str, broken_code: str, errors: str, lang: str = "c") -> Optional[str]:
+    """Ask Groq to repair compile errors in `broken_code`. Returns the
+    corrected source as a string, or None on any failure path."""
+    api_key = (getattr(settings, "GROQ_API_KEY", "") or "").strip()
+    if not api_key or not (broken_code or "").strip():
+        return None
+
+    head_code   = broken_code[:6000]
+    head_errors = (errors or "")[:1500]
+    user = (
+        f"Active language: {lang}\n"
+        f"Original prompt: {prompt[:400]}\n\n"
+        f"Compiler / assembler errors:\n{head_errors}\n\n"
+        f"Broken code:\n{head_code}"
+    )
+    raw = _groq_chat(
+        [{"role": "system", "content": FIX_SYSTEM},
+         {"role": "user",   "content": user}],
+        max_tokens=4000, temperature=0.1, json_mode=False,
+    )
+    if not raw or not raw.strip():
+        return None
+    fixed = _strip_code_fences(raw)
+    # Guard against the model returning an empty / commentary-only response.
+    if len(fixed.strip()) < 30:
+        return None
+    return fixed
+
+
 def explain_code(prompt: str, code: str, lang: str = "asm") -> dict:
     """Generate {intro, summary, usage} for a finished code artefact.
 

@@ -20,7 +20,7 @@ from accounts.models import ActivityEvent, ApiKey, UserProfile
 from accounts import tiers as tier_lib
 
 from . import llm as llm_backend
-from .assistant import classify_prompt, explain_code
+from .assistant import classify_prompt, explain_code, fix_code_errors
 from .fallback import pick_fallback
 from .naming import infer_chat_title
 from .models import Conversation, Message
@@ -883,6 +883,7 @@ def api_regenerate(request, pk):
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
         payload = {}
+    force_new = bool(payload.get("force_new"))
     try:
         temperature = float(payload.get("temperature", assistant_msg.temperature or 0.7))
     except (TypeError, ValueError):
@@ -894,6 +895,66 @@ def api_regenerate(request, pk):
         max_tokens = 2048
     max_tokens = max(16, min(8192, max_tokens))
 
+    # Step 1 — try to fix the existing code with Groq before regenerating.
+    # Only runs for analyseable languages (c / asm); skipped if the caller
+    # explicitly asks for a fresh generation via force_new=true.
+    if not force_new:
+        from . import sandbox
+        current_code = _DP_META_STRIP.sub("", assistant_msg.content or "")
+        analyse_lang = (convo.language or "asm").lower()
+        if analyse_lang in ("c", "asm") and current_code.strip():
+            try:
+                analysis = sandbox.analyse(current_code, analyse_lang)
+            except Exception:
+                log.exception("regenerate: pre-fix analyse crashed")
+                analysis = None
+
+            if analysis and not analysis.syntax_ok and analysis.syntax_detail:
+                fixed = fix_code_errors(
+                    prior_user.content,
+                    current_code,
+                    analysis.syntax_detail,
+                    analyse_lang,
+                )
+                if fixed:
+                    explanation = explain_code(prior_user.content, fixed, lang=analyse_lang)
+                    if explanation:
+                        meta = {
+                            "kind":    "code",
+                            "intro":   explanation.get("intro", ""),
+                            "summary": explanation.get("summary", ""),
+                            "usage":   explanation.get("usage", ""),
+                        }
+                        stored_content = _wrap_with_meta(meta, fixed)
+                    else:
+                        stored_content = fixed
+                    assistant_msg.content = stored_content
+                    assistant_msg.save(update_fields=["content"])
+                    convo.save(update_fields=["updated_at"])
+                    log.info("regenerate: fixed compile errors via Groq for msg %d (lang=%s)",
+                             assistant_msg.id, analyse_lang)
+                    return JsonResponse({
+                        "regenerate_kind": "fixed",
+                        "assistant_message": {
+                            "id":          assistant_msg.id,
+                            "role":        "assistant",
+                            "content":     assistant_msg.content,
+                            "created_at":  assistant_msg.created_at.isoformat(),
+                        },
+                    })
+                # Groq fix failed — fall through to fresh generation below.
+
+            if analysis and analysis.syntax_ok:
+                # Code is already clean; ask the user to confirm a fresh variant.
+                return JsonResponse({
+                    "regenerate_kind": "already_clean",
+                    "detail": (
+                        "The current code already compiles cleanly. "
+                        "Generate a new variant?"
+                    ),
+                })
+
+    # Step 2 — original fresh-generation path (LLM, with corpus fallback).
     try:
         generated = llm_backend.generate(
             prior_user.content,
@@ -945,6 +1006,7 @@ def api_regenerate(request, pk):
     convo.save(update_fields=["updated_at"])
 
     return JsonResponse({
+        "regenerate_kind": "new",
         "assistant_message": {
             "id": assistant_msg.id,
             "role": "assistant",
