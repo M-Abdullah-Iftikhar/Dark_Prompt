@@ -63,7 +63,15 @@ services:
         value: "llama-3.1-8b-instant"
 
       # ----- Email (console backend OK for FYP demo; swap to SMTP for real users) -----
+      # Render's free tier blocks SMTP egress, so use the HTTPS-API
+      # backend in accounts/email_backends.py and set the matching key
+      # below. The console backend (default) only prints to stdout, which
+      # means verification + password-reset emails never reach users.
       - key: DJANGO_EMAIL_BACKEND
-        value: "django.core.mail.backends.console.EmailBackend"
+        sync: false                       # set to "accounts.email_backends.BrevoBackend"
+      - key: BREVO_API_KEY
+        sync: false                       # xkeysib-... from Brevo dashboard
+      - key: RESEND_API_KEY
+        sync: false                       # alternative: re_... from Resend dashboard
       - key: DJANGO_DEFAULT_FROM_EMAIL
-        value: "Dark Prompt <no-reply@darkprompt.local>"
+        sync: false                       # must match a verified sender, e.g. "Dark Prompt <verified@example.com>"

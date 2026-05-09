@@ -1521,6 +1521,32 @@
         runCompile(block, innerCompile);
       });
     }
+
+    // If the analyser found real syntax errors (not a soft-degrade like
+    // "MinGW headers unavailable"), offer to auto-fix via the regenerate
+    // flow — Groq will repair compile + logic bugs while preserving intent.
+    const detail = (data.syntax_detail || '').trim();
+    const hasRealError = !ok && detail && !/^Skipped\b/i.test(detail);
+    if (hasRealError) {
+      const msg = block.closest('.msg');
+      const regenBtn = msg && msg.querySelector('.msg-action[data-action="regen"]');
+      if (regenBtn && !block.dataset.autoFixOffered) {
+        block.dataset.autoFixOffered = '1';
+        // Defer one tick so the analysis panel paints before the modal.
+        setTimeout(() => offerAutoFix(regenBtn), 250);
+      }
+    }
+  }
+
+  async function offerAutoFix(regenBtn) {
+    const proceed = await openConfirm({
+      title:   'Compile errors detected',
+      body:    'The analyser found errors in this code. Regenerate will use Groq to repair compile and logic bugs while preserving the original behaviour. Apply auto-fix now?',
+      target:  '',
+      okLabel: 'Auto-fix via regenerate',
+    });
+    if (!proceed) return;
+    regenBtn.click();
   }
 
   async function runCompile(block, btn) {
