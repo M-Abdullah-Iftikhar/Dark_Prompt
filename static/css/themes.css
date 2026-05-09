@@ -3472,10 +3472,20 @@ a:focus-visible{
   #new-chat-btn{ font-size: 12.5px; padding: 9px 12px; }
 
   /* Chat main */
+  /* Pin the chat header (hamburger + lang toggle + title) to the top of
+     the viewport on mobile, sitting right below the fixed navbar. Without
+     this, on mobile the whole page scrolls and the header disappears
+     once the user scrolls into the message thread. */
   .chat-head{
+    position: sticky;
+    top: var(--nav-height);
+    z-index: 40;
     flex-wrap: wrap;
     padding: 14px 18px;
     gap: 10px;
+    background: var(--bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
   .chat-head > div:first-child{ min-width: 0; max-width: 100%; }
   .chat-head h1{
@@ -3680,6 +3690,13 @@ a:focus-visible{
   .chat-head{ padding: 12px 14px; }
   .chat-head h1{ font-size: 14px; }
   .chat-sidebar{ padding: 10px; max-height: none; }
+
+  /* On very small phones the temperature slider + max-tokens input need
+     to flex instead of using fixed widths, otherwise they overflow the
+     param-controls row and force a horizontal scrollbar. */
+  .param{ min-width: 0; }
+  .param input[type="range"]{ width: auto; flex: 1 1 0; min-width: 60px; }
+  .param input[type="number"]{ width: 64px; }
 
   .composer{ padding: 10px 10px 12px; }
   .composer-classifier{ gap: 8px; flex-wrap: wrap; }
@@ -4171,8 +4188,10 @@ a:focus-visible{
 /* ===== Site-wide navbar (replaces .topnav when Dark theme is active) ===== */
 .dh-nav{ display: none; }
 [data-theme="dark"] .dh-nav{
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
   height: var(--nav-height);
   display: flex;
@@ -4188,6 +4207,9 @@ a:focus-visible{
   letter-spacing: 0.16em;
   color: var(--dh-bone);
 }
+/* Body offset so content starts below the now-fixed navbar.
+   Chat-shell already uses calc(100vh - var(--nav-height)) so it fits perfectly. */
+[data-theme="dark"] body{ padding-top: var(--nav-height); }
 [data-theme="dark"] .dh-brand{
   display: inline-flex;
   align-items: center;
@@ -4667,6 +4689,9 @@ a:focus-visible{
 }
 @media (max-width: 680px) {
   [data-theme="dark"] .dark-hero{ padding: 0 14px 56px; }
+  /* On small screens the nav shrinks to ~48px; keep the body padding-top
+     in sync so content isn't pushed too far down on phones. */
+  [data-theme="dark"]{ --nav-height: 48px; }
   [data-theme="dark"] .dh-nav{ font-size: 9.5px; padding: 0 12px; gap: 8px; height: auto; min-height: 48px; flex-wrap: wrap; }
   [data-theme="dark"] .dh-nav-spacer{ display: none; }
   /* Hide non-essential chrome on small screens — keep brand + UTC + button */
