@@ -11,26 +11,32 @@ FROM python:3.12-slim-bookworm
 #   gcc                  — native Linux C compiler
 #   gcc-mingw-w64-x86-64 — cross-compiler for Windows-targeted C (#include <windows.h> etc.)
 #   nasm                 — assembler for NASM-style x86/x86-64 ASM
-#   git/make/g++         — build deps for UASM (removed after build to keep image lean)
-#
-# UASM is a MASM-compatible assembler not packaged in Debian, so we build it
-# from source. It handles the .model / .code / .386 directives that NASM
-# can't, which our MASM-style fallback corpus uses.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         gcc \
         gcc-mingw-w64-x86-64 \
         nasm \
-        git \
-        make \
-        g++ \
-    && git clone --depth 1 https://github.com/Terraspace/UASM.git /tmp/uasm \
-    && make -C /tmp/uasm -f gccLinux64.mak \
-        EXTRA_C_FLAGS="-Wno-error=implicit-function-declaration" \
-    && cp /tmp/uasm/GccUnixR/uasm /usr/local/bin/uasm \
-    && rm -rf /tmp/uasm \
-    && apt-get purge -y --auto-remove git make g++ \
     && rm -rf /var/lib/apt/lists/*
+
+# UASM (MASM-compatible assembler) is best-effort. Upstream HEAD currently
+# has Windows-only includes (e.g. dbgcv.c → <direct.h>) that break the
+# Linux build, so we don't fail the image if it doesn't compile — the app's
+# `_analyse_assembly` already soft-degrades on missing MASM with a regex
+# sanity-check + warning. When upstream is buildable again, this layer will
+# silently start producing /usr/local/bin/uasm and the app will pick it up.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git make g++ \
+    && rm -rf /var/lib/apt/lists/* \
+    && ( \
+        git clone --depth 1 https://github.com/Terraspace/UASM.git /tmp/uasm \
+        && make -C /tmp/uasm -f gccLinux64.mak \
+            EXTRA_C_FLAGS="-Wno-error=implicit-function-declaration" \
+        && cp /tmp/uasm/GccUnixR/uasm /usr/local/bin/uasm \
+        && echo "INFO: UASM installed at /usr/local/bin/uasm" \
+        || echo "WARN: UASM build failed — MASM-style ASM analysis will degrade to a regex sanity check" \
+    ) \
+    && rm -rf /tmp/uasm \
+    && apt-get purge -y --auto-remove git make g++
 
 WORKDIR /app
 
